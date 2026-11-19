@@ -10,6 +10,7 @@
   document.body.classList.add('grille');
   var vueCarte = {};             /* élément coché : affichage « comme dans la carte » */
   var vueEspace = {};            /* espace coché : tout l'espace prend l'interface de la carte */
+  var ongletEspace = {};         /* onglet ouvert par espace (vue carte) */
 
   /* identifiants : ceux que la carte a déjà rangés sur cet appareil (même origine, donc même stockage), sinon ceux saisis ici */
   function identifiants() {
@@ -198,30 +199,49 @@
     coche.appendChild(cbE);
     coche.appendChild(el('span', 'piste'));
     fil.appendChild(coche);
-    if (vueEspace[choisi] && e.notes) {
-      var rc = el('div', 'item');
-      rc.appendChild(el('p', 'titre-section', 'Récap'));
-      rc.appendChild(el('p', 'detail', e.notes));
-      fil.appendChild(rc);
+    var ong = [['recap', 'Récap'], ['taches', 'Tâches'], ['dates', 'Dates'], ['idees', 'Idées']];
+    var actif = ongletEspace[choisi] || 'recap';
+    if (vueEspace[choisi]) {
+      /* vue carte : onglets navigables, un seul contenu à la fois */
+      var barre = el('div', 'onglets');
+      barre.setAttribute('role', 'tablist');
+      ong.forEach(function (o) {
+        var b = el('button', 'onglet' + (o[0] === actif ? ' actif' : ''), o[1]);
+        b.type = 'button';
+        b.setAttribute('role', 'tab');
+        b.setAttribute('aria-selected', String(o[0] === actif));
+        b.addEventListener('click', function () { ongletEspace[choisi] = o[0]; rendre(); });
+        barre.appendChild(b);
+      });
+      fil.appendChild(barre);
+      if (actif === 'recap') {
+        var rc = el('div', 'item');
+        rc.appendChild(el('p', 'titre-section', 'Récap'));
+        rc.appendChild(el('p', 'detail', e.notes || 'Pas de récap pour cet espace.'));
+        fil.appendChild(rc);
+      }
     }
 
     var sections = [
-      ['Tâches', (e.tasks || []).map(function (t) {
+      ['taches', 'Tâches', (e.tasks || []).map(function (t) {
         return ['t' + t.id, t.text, [(t.done ? 'Faite' : 'À faire') + (t.due ? ' · échéance ' + t.due : '')], t.done ? '☑' : '☐'];
       })],
-      ['Dates', (e.dates || []).map(function (d) {
+      ['dates', 'Dates', (e.dates || []).map(function (d) {
         return ['d' + d.id, (d.date || '') + (d.time ? ' ' + d.time : ''), [d.text || ''], '◆'];
       })],
-      ['Idées', (e.ideas || []).map(function (i) { return ['i' + i.id, i.text, [], '•']; })]
+      ['idees', 'Idées', (e.ideas || []).map(function (i) { return ['i' + i.id, i.text, [], '•']; })]
     ];
     sections.forEach(function (s) {
-      if (!s[1].length) return;
-      fil.appendChild(el('p', 'titre-section', s[0]));
-      s[1].forEach(function (it) {
+      if (vueEspace[choisi] && s[0] !== actif) return;
+      if (!s[2].length) return;
+      fil.appendChild(el('p', 'titre-section', s[1]));
+      s[2].forEach(function (it) {
         fil.appendChild(ligneItem(it[1], it[2], it[0], it[3]));
       });
     });
-    if (!sections.some(function (s) { return s[1].length; })) {
+    if (vueEspace[choisi] && actif !== 'recap' && !sections.some(function (s) { return s[0] === actif && s[2].length; })) {
+      fil.appendChild(bulle('Rien dans cet onglet pour l\'instant.', false));
+    } else if (!vueEspace[choisi] && !sections.some(function (s) { return s[2].length; })) {
       fil.appendChild(bulle('Rien dans cet espace pour l\'instant.', false));
     }
   }
