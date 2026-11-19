@@ -244,6 +244,38 @@
     } else if (!vueEspace[choisi] && !sections.some(function (s) { return s[2].length; })) {
       fil.appendChild(bulle('Rien dans cet espace pour l\'instant.', false));
     }
+    fil.appendChild(formulaireAjout());
+  }
+
+  /* saisie : un élément (tâche ou idée) ajouté à l'espace choisi */
+  var messageEcriture = '';
+  function formulaireAjout() {
+    var form = el('form', 'saisie-item');
+    var sel = el('select');
+    sel.setAttribute('aria-label', 'Type d\'élément');
+    [['tache', 'Tâche'], ['idee', 'Idée']].forEach(function (o) {
+      var op = el('option', '', o[1]); op.value = o[0]; sel.appendChild(op);
+    });
+    var champ = el('input');
+    champ.type = 'text';
+    champ.maxLength = 300;
+    champ.placeholder = 'Ajouter à cet espace';
+    champ.setAttribute('aria-label', 'Texte à ajouter');
+    var bouton = el('button', 'pilule plein', 'Ajouter');
+    bouton.type = 'submit';
+    form.appendChild(sel);
+    form.appendChild(champ);
+    form.appendChild(bouton);
+    form.addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      var t = champ.value.trim();
+      if (!t || enEcriture) return;
+      ajouteItem(choisi, sel.value, t);
+    });
+    var wrap = el('div', 'saisie-zone');
+    wrap.appendChild(form);
+    if (messageEcriture) wrap.appendChild(el('p', 'etat', messageEcriture));
+    return wrap;
   }
 
   function rendre() {
@@ -301,6 +333,50 @@
   }
   $('envoi').addEventListener('click', envoieSaisie);
   $('texte').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); envoieSaisie(); } });
+  /* ---------- écriture : ajoute un élément, sauvegarde l'ancien carte.json, n'efface rien ---------- */
+  var enEcriture = false;
+  function encodeTexte(txt) { return btoa(unescape(encodeURIComponent(txt))); }
+  function decodeTexte(b64) { return decodeURIComponent(escape(atob(String(b64).replace(/\n/g, '')))); }
+  function ajouteItem(cleEspace, type, texte) {
+    var id = identifiants(), repo = id.repo, cle = id.cle;
+    if (!repo || !cle) return;
+    enEcriture = true;
+    messageEcriture = 'Enregistrement…';
+    rendreFil();
+    var url = 'https://api.github.com/repos/' + repo + '/contents/carte.json';
+    var entete = { Authorization: 'Bearer ' + cle, Accept: 'application/vnd.github+json' };
+    var fichier = null, lu = null;
+    fetch(url, { headers: entete, cache: 'no-store' }).then(function (r) {
+      if (!r.ok) throw new Error('lecture HTTP ' + r.status);
+      return r.json();
+    }).then(function (f) {
+      fichier = f;
+      var brut = decodeTexte(f.content);
+      /* sauvegarde locale de la version précédente avant tout envoi */
+      try { localStorage.setItem('variante-sauvegarde', brut); } catch (e) { /* stockage plein : l'envoi se fait quand même, GitHub garde l'historique */ }
+      lu = JSON.parse(brut);
+      var espace = lu[cleEspace];
+      if (!espace || espace._del) throw new Error('espace introuvable');
+      var entree = { id: Date.now(), text: texte };
+      if (type === 'tache') { entree.done = false; espace.tasks = (espace.tasks || []).concat([entree]); }
+      else { espace.ideas = (espace.ideas || []).concat([entree]); }
+      return fetch(url, {
+        method: 'PUT',
+        headers: { Authorization: 'Bearer ' + cle, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: 'Ajout : ' + (type === 'tache' ? 'tâche' : 'idée'), content: encodeTexte(JSON.stringify(lu, null, 2) + '\n'), sha: fichier.sha })
+      });
+    }).then(function (r) {
+      if (!r.ok) throw new Error('écriture HTTP ' + r.status);
+      donnees = lu;
+      enEcriture = false;
+      messageEcriture = '';
+      rendre();
+    }).catch(function (err) {
+      enEcriture = false;
+      messageEcriture = 'Rien n\'a été ajouté (' + err.message + '). Vérifie la clé (droit d\'écriture sur le dépôt).';
+      rendreFil();
+    });
+  }
 
   /* ---------- écrans : connexion neutre, puis carte ---------- */
   /* coque neutre : tant que rien n'est prêt, le HTML reste masqué (pas d'ancienne version affichée) */
