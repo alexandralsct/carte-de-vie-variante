@@ -1,12 +1,12 @@
 /* Hors ligne pour la variante « style LIFE » : cache des fichiers de l'app, réseau pour le reste.
    Cache propre à la variante (préfixe carte-life-) ; pas de contrôle d'empreinte (le contenu privé n'est pas dans ce dossier). */
-const C = "carte-life-v38";
+const C = "carte-life-v39";
 const FILES = ["./", "./index.html", "./life-style.css", "./app.js", "./manifest.webmanifest",
   "./logo-a-192.png", "./logo-a-512.png", "./logo-a-maskable-512.png",
   "./fonts/instrument-sans.woff2", "./fonts/plex-mono-400.woff2", "./fonts/plex-mono-500.woff2"];
 
 self.addEventListener("install", (e) => {
-  e.waitUntil(caches.open(C).then((c) => c.addAll(FILES)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(C).then((c) => Promise.all(FILES.map((f) => fetch(new Request(f, { cache: "reload" })).then((r) => r.ok ? c.put(f, r) : null)))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener("activate", (e) => {
@@ -18,7 +18,7 @@ self.addEventListener("fetch", (e) => {
   if (e.request.method !== "GET" || u.origin !== self.location.origin) return;
   /* réseau d'abord : une page ou une feuille de style mises à jour s'affichent tout de suite ; le cache sert hors ligne */
   e.respondWith(
-    fetch(e.request).then((res) => {
+    fetch(e.request, { cache: "no-cache" }).then((res) => {
       if (res.ok && res.type === "basic") {
         const copie = res.clone();
         caches.open(C).then((c) => c.put(e.request, copie));

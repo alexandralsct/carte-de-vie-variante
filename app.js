@@ -99,34 +99,40 @@
     var m = String(nom).split(/\s+/).reduce(function (a, w) { return Math.max(a, w.length); }, 0);
     return m >= 11 ? ' long' : m >= 9 ? ' moyen' : '';
   }
-  /* logos de la carte : lus à l'exécution dans la vraie carte (même origine), rien n'est copié dans ce dépôt */
-  var logosCarteLus = false, logosLances = false;
+  /* logos de la carte : fournis à l'exécution par la vraie carte (même origine) via sa propre fonction icoHTML ; rien n'est copié dans ce dépôt */
+  var logosCarteLus = false, logosLances = false, fnIcoCarte = null;
+  function logoDepuisCarte(e) {
+    if (!fnIcoCarte) return null;
+    try {
+      var tmp = document.createElement('div');
+      tmp.innerHTML = fnIcoCarte(e.id ? e : Object.assign({}, e, { id: String(e._cle || '').replace(/^espaces\//, '') }));   /* tracés de la carte (balises svg/g/path uniquement) */
+      var g = tmp.querySelector('.vL') || tmp.querySelector('g') || tmp.querySelector('svg');
+      if (!g) return null;
+      var corps = g.innerHTML.replace(/ class="[^"]*"/g, '');
+      return corps ? icone(null, corps) : null;
+    } catch (x) { return null; }
+  }
   function chargeLogosCarte() {
     var f = document.createElement('iframe');
     f.setAttribute('aria-hidden', 'true'); f.tabIndex = -1;
     f.style.cssText = 'position:absolute;width:0;height:0;border:0;visibility:hidden';
     f.src = '../carte-de-vie/';
-    var essais = 0, nb0 = -1, stable = 0;
+    var essais = 0, nb0 = -1;
     var t = setInterval(function () {
       essais++;
       try {
         var w = f.contentWindow;
-        var L = w.eval('typeof ICONS_L!=="undefined"?ICONS_L:null'), P = w.eval('typeof ICONS!=="undefined"?ICONS:null');
-        if (L || P) {
-          var nb = Object.keys(L || {}).length + Object.keys(P || {}).length;
-          if (nb === nb0) stable++; else { stable = 0; nb0 = nb; }
-          if (stable >= 3) {   /* tables stables : le module de la propriétaire a fini d'ajouter ses logos */
-            Object.keys(L || {}).forEach(function (k) { ICONES_CARTE_L[k] = String(L[k]).replace(/ class="[^"]*"/g, ''); });
-            Object.keys(P || {}).forEach(function (k) { ICONES_CARTE[k] = String(P[k]).replace(/ class="[^"]*"/g, ''); });
-            logosCarteLus = true;
-            clearInterval(t);
-            if (f.parentNode) f.parentNode.removeChild(f);
-            if (donnees) rendreTuiles();
-          }
+        var fn = w.eval('typeof icoHTML==="function"?icoHTML:null');
+        var P = w.eval('typeof ICONS!=="undefined"?ICONS:null');
+        if (fn && P) {
+          var nb = Object.keys(P).length;
+          fnIcoCarte = fn;
+          logosCarteLus = true;
+          if (nb !== nb0 || essais % 5 === 0) { nb0 = nb; if (donnees) rendreTuiles(); }   /* le module de la propriétaire ajoute ses logos au fil du chargement */
         }
       } catch (x) { clearInterval(t); }
-      if (essais > 80) { clearInterval(t); if (f.parentNode) f.parentNode.removeChild(f); }
-    }, 400);
+      if (essais > 60) clearInterval(t);   /* l'iframe reste en place, cachée : icoHTML sert aux rendus suivants */
+    }, 500);
     document.body.appendChild(f);
   }
 
@@ -136,13 +142,13 @@
     var moi = { cle: 'moi', nom: 'Moi', badge: 0, couleur: '#002FA7' };
     var speciales = [{ cle: 'chemin', nom: 'Chemin de vie', badge: 0, couleur: '#002FA7', icone: 'chemin', rang: 50 }, { cle: 'assistants', nom: 'Mes assistants', badge: 0, couleur: '#002FA7', icone: 'assistants', rang: 51 }];
     ordonne([moi].concat(espaces().map(function (e, i) {
-      return { cle: e._cle, nom: e.name || 'Sans nom', badge: tachesOuvertes(e), couleur: e.color || '#002FA7', rang: i, icone: e.icon || e.id };
+      return { cle: e._cle, nom: e.name || 'Sans nom', badge: tachesOuvertes(e), couleur: e.color || '#002FA7', rang: i, icone: e.icon || e.id, src: e };
     })).concat(speciales)).forEach(function (t) {
       var b = el('button', 'tuile' + (t.cle === choisi ? ' on' : '') + tailleNom(t.nom));
       b.type = 'button';
       b.setAttribute('data-cle', t.cle);
       b.setAttribute('aria-pressed', String(t.cle === choisi));
-      var ico = t.cle === 'moi' ? icone('coach') : iconeEspace(t.icone, t.rang);
+      var ico = t.cle === 'moi' ? icone('coach') : ((t.src && logoDepuisCarte(t.src)) || iconeEspace(t.icone, t.rang));
       b.appendChild(ico);
       if (typeof t.icone === 'string' && t.icone.indexOf('f:') === 0) chargeImageTuile(ico, t.icone.slice(2));
       b.appendChild(el('span', 'nom' + tailleNom(t.nom), t.nom));
