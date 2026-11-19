@@ -113,13 +113,16 @@
     experts: '<path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11v5c0 1.7 2.7 3 6 3s6-1.3 6-3v-5M22 9v6"/>',
     comite: '<path d="M3 21h18M5 21V10M19 21V10M9 21v-7M15 21v-7M2 10l10-6 10 6z"/>',
     brainstorm: '<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/>',
-    coach: '<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/>'
+    coach: '<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/>',
+    chemin: '<circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>',
+    assistants: '<rect x="4" y="7" width="16" height="12" rx="3"/><path d="M12 7V4M9 13h.01M15 13h.01M9 16.5h6"/>'
   };
   var ORDRE_ICONES = ['general', 'travail', 'patrimoine', 'quotidien', 'voyage', 'experts', 'comite', 'brainstorm', 'coach', 'metamorphose'];
 
   /* icône en trait fin, comme dans LIFE (aucune couleur d'espace) */
   /* icône de la carte pour un espace (clé connue seulement), sinon icône LIFE */
   function iconeEspace(cle, rang) {
+    if (typeof cle === 'string' && Object.prototype.hasOwnProperty.call(ICONES, cle)) return icone(cle);
     var tables = [ICONES_CARTE_L, ICONES_CARTE];
     for (var i = 0; i < tables.length; i++) {
       if (typeof cle === 'string' && Object.prototype.hasOwnProperty.call(tables[i], cle)) return icone(null, tables[i][cle]);
