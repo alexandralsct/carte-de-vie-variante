@@ -123,12 +123,15 @@
   /* icône en trait fin, comme dans LIFE (aucune couleur d'espace) */
   /* icône de la carte pour un espace (clé connue seulement), sinon icône LIFE */
   function iconeEspace(cle, rang) {
-    if (typeof cle === 'string' && Object.prototype.hasOwnProperty.call(ICONES, cle)) return icone(cle);
+    /* comme la carte : « t:clé » = clé après le préfixe ; clé inconnue = étoile */
+    var k = typeof cle === 'string' ? cle : '';
+    if (k.indexOf('t:') === 0) k = k.split(':')[1] || '';
     var tables = [ICONES_CARTE_L, ICONES_CARTE];
     for (var i = 0; i < tables.length; i++) {
-      if (typeof cle === 'string' && Object.prototype.hasOwnProperty.call(tables[i], cle)) return icone(null, tables[i][cle]);
+      if (k && Object.prototype.hasOwnProperty.call(tables[i], k)) return icone(null, tables[i][k]);
     }
-    return icone(ORDRE_ICONES[rang % ORDRE_ICONES.length]);
+    if (k && Object.prototype.hasOwnProperty.call(ICONES, k)) return icone(k);
+    return icone(null, ICONES_CARTE_L.star || ICONES_CARTE.star);
   }
 
   function icone(cle, corps) {
