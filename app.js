@@ -100,6 +100,7 @@
     return m >= 11 ? ' long' : m >= 9 ? ' moyen' : '';
   }
   /* logos de la carte : fournis à l'exécution par la vraie carte (même origine) via sa propre fonction icoHTML ; rien n'est copié dans ce dépôt */
+  var logoParNom = {}, nbBulles = 0;
   var logosCarteLus = false, logosLances = false, fnIcoCarte = null, fnSuggCarte = null, fnLogoCarte = null, tablesCarte = null;
   function logoDepuisCarte(e) {
     if (!fnIcoCarte) return null;
@@ -139,15 +140,72 @@
           logosCarteLus = true;
           if (nb !== nb0 || essais % 5 === 0) { nb0 = nb; if (donnees) rendreTuiles(); }   /* le module de la propriétaire ajoute ses logos au fil du chargement */
         }
+        /* ce que la vraie carte affiche sur ses bulles : nom -> tracé du logo (même origine, lecture seule) */
+        var d = f.contentDocument, noeuds = d ? d.querySelectorAll('.node') : [];
+        if (noeuds.length && noeuds.length !== nbBulles) {
+          nbBulles = noeuds.length;
+          Array.prototype.forEach.call(noeuds, function (n) {
+            var b = n.querySelector('b'), sv = n.querySelector('.ico svg');
+            if (!b || !sv) return;
+            var g = sv.querySelector('.vL') || sv;
+            var corps = g.innerHTML.replace(/ class="[^"]*"/g, '').replace(/ style="[^"]*"/g, '');
+            if (corps) logoParNom[b.textContent.trim().toLowerCase()] = corps;
+          });
+          if (donnees) rendreTuiles();
+        }
       } catch (x) { clearInterval(t); }
-      if (essais > 60) clearInterval(t);   /* l'iframe reste en place, cachée : icoHTML sert aux rendus suivants */
+      if (essais > 100) clearInterval(t);   /* l'iframe reste en place, cachée : icoHTML sert aux rendus suivants */
     }, 500);
     document.body.appendChild(f);
   }
 
+  function majBarreOrg() {
+    var nav = $('tuiles'), v = document.getElementById('barre-org');
+    if (v) v.parentNode.removeChild(v);
+    if (!organise) return;
+    var barre = el('div', 'barre-org');
+    barre.id = 'barre-org';
+    barre.appendChild(el('span', '', 'Glisse une tuile pour la placer.'));
+    var ok = el('button', 'pilule plein', 'Terminé');
+    ok.type = 'button';
+    ok.addEventListener('click', function () { organise = false; $('m-organiser').textContent = 'Organiser mes tuiles'; rendreTuiles(); });
+    barre.appendChild(ok);
+    nav.parentNode.insertBefore(barre, nav.nextSibling);
+  }
+  function activeGlisse(nav) {
+    Array.prototype.forEach.call(nav.querySelectorAll('.tuile'), function (b) {
+      b.style.touchAction = 'none';
+      b.addEventListener('pointerdown', function (ev) {
+        if (ev.target.closest && ev.target.closest('.fleche')) return;
+        ev.preventDefault();
+        try { b.setPointerCapture(ev.pointerId); } catch (x) { /* ignoré */ }
+        b.classList.add('glisse');
+        var bouge = function (e) {
+          var sous = document.elementFromPoint(e.clientX, e.clientY);
+          var cible = sous && sous.closest ? sous.closest('.tuile') : null;
+          if (!cible || cible === b || cible.parentNode !== nav) return;
+          var apres = !!(b.compareDocumentPosition(cible) & Node.DOCUMENT_POSITION_FOLLOWING);
+          nav.insertBefore(b, apres ? cible.nextSibling : cible);
+        };
+        var fin = function () {
+          b.classList.remove('glisse');
+          b.removeEventListener('pointermove', bouge);
+          b.removeEventListener('pointerup', fin);
+          b.removeEventListener('pointercancel', fin);
+          var l = Array.prototype.map.call(nav.querySelectorAll('.tuile'), function (x) { return x.getAttribute('data-cle'); });
+          try { localStorage.setItem('carte-variante-ordre', JSON.stringify(l)); } catch (x) { /* ignoré */ }
+        };
+        b.addEventListener('pointermove', bouge);
+        b.addEventListener('pointerup', fin);
+        b.addEventListener('pointercancel', fin);
+      });
+    });
+  }
+  var appuiLong = false;
   function rendreTuiles() {
     var nav = $('tuiles');
     nav.textContent = '';
+    majBarreOrg();
     var moi = { cle: 'moi', nom: 'Moi', badge: 0, couleur: '#002FA7' };
     var speciales = [{ cle: 'chemin', nom: 'Chemin de vie', badge: 0, couleur: '#002FA7', icone: 'chemin', rang: 50 }, { cle: 'assistants', nom: 'Mes assistants', badge: 0, couleur: '#002FA7', icone: 'assistants', rang: 51 }];
     ordonne([moi].concat(espaces().map(function (e, i) {
@@ -157,7 +215,7 @@
       b.type = 'button';
       b.setAttribute('data-cle', t.cle);
       b.setAttribute('aria-pressed', String(t.cle === choisi));
-      var ico = t.cle === 'moi' ? icone('moi') : ((t.src && logoDepuisCarte(t.src)) || iconeEspace(t.icone, t.rang));
+      var ico = t.cle === 'moi' ? icone('moi') : (logoParNom[t.nom.toLowerCase()] ? icone(null, logoParNom[t.nom.toLowerCase()]) : ((t.src && logoDepuisCarte(t.src)) || iconeEspace(t.icone, t.rang)));
       b.appendChild(ico);
       if (typeof t.icone === 'string' && t.icone.indexOf('f:') === 0) chargeImageTuile(ico, t.icone.slice(2));
       b.appendChild(el('span', 'nom' + tailleNom(t.nom), t.nom.replace(/·/g, '·\u200b')));
@@ -173,10 +231,22 @@
         b.appendChild(fl);
         b.addEventListener('click', function () { /* en mode organiser, la tuile ne s'ouvre pas */ });
       } else {
-        b.addEventListener('click', function () { choisi = t.cle; vueCarte = {}; rendre(); });
+        b.addEventListener('click', function () { if (appuiLong) { appuiLong = false; return; } choisi = t.cle; vueCarte = {}; rendre(); });
+        /* appui long : passe en mode organisation */
+        var minuteur = null;
+        var annule = function () { clearTimeout(minuteur); };
+        b.addEventListener('pointerdown', function () {
+          minuteur = setTimeout(function () {
+            appuiLong = true; organise = true;
+            $('m-organiser').textContent = 'Terminer l\'organisation';
+            rendreTuiles();
+          }, 500);
+        });
+        ['pointerup', 'pointerleave', 'pointermove', 'pointercancel'].forEach(function (n) { b.addEventListener(n, annule); });
       }
       nav.appendChild(b);
     });
+    if (organise) activeGlisse(nav);
   }
 
   /* ---------- fil de conversation (Omniscient) ---------- */

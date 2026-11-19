@@ -197,7 +197,13 @@ body:not(.grille) .tuile .ico-image { width: 20px; height: 20px; }
 /* tuiles de même hauteur (celle des petites), un peu plus larges */
 @media (max-width: 899px) {
   body.grille .tuiles { margin: 0 10px; gap: 6px; }
-  body.grille .tuile { aspect-ratio: auto; height: 66px; padding: 4px 2px; gap: 2px; }
-  body.grille .tuile .ico, body.grille .tuile .ico-image { width: 24px; height: 24px; }
+  body.grille .tuile { aspect-ratio: auto; height: 54px; padding: 3px 2px; gap: 1px; }
+  body.grille .tuile .ico, body.grille .tuile .ico-image { width: 20px; height: 20px; }
   body.grille .tuile .nom { max-height: 2.3em; }
 }
+
+.barre-org { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 10px 6px; font-size: 12px; color: var(--encre-2); }
+.tuile.glisse { opacity: .75; transform: scale(1.06); z-index: 2; }
+body.grille .tuile .nom { font-size: 9px; line-height: 1.05; }
+body.grille .tuile .nom.moyen { font-size: 8px; }
+body.grille .tuile .nom.long { font-size: 7px; }
