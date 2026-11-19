@@ -82,9 +82,10 @@
     var nav = $('tuiles');
     nav.textContent = '';
     var moi = { cle: 'moi', nom: 'Moi', badge: 0, couleur: '#002FA7' };
+    var speciales = [{ cle: 'chemin', nom: 'Chemin de vie', badge: 0, couleur: '#002FA7', icone: 'chemin', rang: 50 }, { cle: 'assistants', nom: 'Mes assistants', badge: 0, couleur: '#002FA7', icone: 'assistants', rang: 51 }];
     [moi].concat(espaces().map(function (e, i) {
       return { cle: e._cle, nom: e.name || 'Sans nom', badge: tachesOuvertes(e), couleur: e.color || '#002FA7', rang: i, icone: e.icon || e.id };
-    })).forEach(function (t) {
+    })).concat(speciales).forEach(function (t) {
       var b = el('button', 'tuile' + (t.cle === choisi ? ' on' : '') + (t.nom.length > 14 ? ' long' : t.nom.length > 9 ? ' moyen' : ''));
       b.type = 'button';
       b.setAttribute('aria-pressed', String(t.cle === choisi));
@@ -193,15 +194,15 @@
     return coche;
   }
   /* la vraie carte dans la variante (même origine : déjà connectée), sur l'espace s'il y en a un */
-  function ajouteCadreCarte(fil, nomEspace) {
+  function ajouteCadreCarte(fil, nomEspace, page) {
     var info = bulle('Ouverture de la carte…', false);
     fil.appendChild(info);
     var cadre = el('iframe', 'cadre-carte');
     cadre.setAttribute('title', 'Carte de vie');
-    cadre.src = '../carte-de-vie/';
+    cadre.src = '../carte-de-vie/' + (page ? '#' + page : '');
     var nom = String(nomEspace || '').trim().toLowerCase();
     cadre.style.visibility = 'hidden';   /* rien de la carte n'est visible tant que la catégorie n'est pas ouverte */
-    var STYLE = 'body *{visibility:hidden!important}#drawer,#drawer *{visibility:visible!important}#closeBtn{display:none!important}';
+    var STYLE = 'body *{visibility:hidden!important}.page:not([hidden]),.page:not([hidden]) *{visibility:visible!important}#closeBtn,#setClose,#assistClose,[id$="Close"]{display:none!important}';
     cadre.addEventListener('load', function () {
       var essais = 0, ouvert = false;
       var t = setInterval(function () {
@@ -213,12 +214,12 @@
             info.querySelector('p').textContent = 'La carte ne s\'ouvre pas ici. Utilise « Ouvrir la carte en plein écran ».';
             clearInterval(t); return;
           }
-          var tiroir = d && d.getElementById('drawer');
+          var tiroir = d && (page ? d.querySelector('.page:not([hidden])') : d.getElementById('drawer'));
           if (!tiroir) { if (essais > 40) { info.querySelector('p').textContent = 'La catégorie ne s\'ouvre pas ici. Utilise « Ouvrir la carte en plein écran ».'; clearInterval(t); } return; }
           if (!d.getElementById('vue-seule')) {
             var st = d.createElement('style'); st.id = 'vue-seule'; st.textContent = STYLE; d.head.appendChild(st);
           }
-          if (tiroir.hidden) {
+          if (!page && tiroir.hidden) {
             /* ouvre (ou rouvre) la catégorie de la tuile ; jamais d'autre */
             var cible = null, noeuds = d.querySelectorAll(nom ? '.node' : '.moi');
             for (var i = 0; i < noeuds.length; i++) {
@@ -248,6 +249,7 @@
     fil.textContent = '';
     if (!donnees) return;
 
+    if (choisi === 'chemin' || choisi === 'assistants') { ajouteCadreCarte(fil, '', choisi === 'chemin' ? 'futur' : 'assistants'); return; }
     if (choisi === 'moi') {
       fil.appendChild(interrupteurVue());
       if (vueEspace.moi) { ajouteCadreCarte(fil, ''); return; }
