@@ -202,28 +202,30 @@
     coche.appendChild(cbE);
     coche.appendChild(el('span', 'piste'));
     fil.appendChild(coche);
-    var ong = [['recap', 'Récap'], ['taches', 'Tâches'], ['dates', 'Dates'], ['idees', 'Idées']];
-    var actif = ongletEspace[choisi] || 'recap';
     if (vueEspace[choisi]) {
-      /* vue carte : onglets navigables, un seul contenu à la fois */
-      var barre = el('div', 'onglets');
-      barre.setAttribute('role', 'tablist');
-      ong.forEach(function (o) {
-        var b = el('button', 'onglet' + (o[0] === actif ? ' actif' : ''), o[1]);
-        b.type = 'button';
-        b.setAttribute('role', 'tab');
-        b.setAttribute('aria-selected', String(o[0] === actif));
-        b.addEventListener('click', function () { ongletEspace[choisi] = o[0]; rendre(); });
-        barre.appendChild(b);
+      /* vue carte : la vraie carte s'ouvre dans la variante (même origine : déjà connectée), sur cet espace */
+      var cadre = el('iframe', 'cadre-carte');
+      cadre.setAttribute('title', 'Carte de vie');
+      cadre.src = '../carte-de-vie/';
+      var nom = String(e.name || '').trim().toLowerCase();
+      cadre.addEventListener('load', function () {
+        var essais = 0;
+        var t = setInterval(function () {
+          essais++;
+          try {
+            var d = cadre.contentDocument;
+            var noeuds = d ? d.querySelectorAll('.node') : [];
+            for (var i = 0; i < noeuds.length; i++) {
+              if (nom && noeuds[i].textContent.trim().toLowerCase().indexOf(nom) === 0) { noeuds[i].click(); clearInterval(t); return; }
+            }
+          } catch (x) { clearInterval(t); }
+          if (essais > 30) clearInterval(t);
+        }, 300);
       });
-      fil.appendChild(barre);
-      if (actif === 'recap') {
-        var rc = el('div', 'item');
-        rc.appendChild(el('p', 'titre-section', 'Récap'));
-        rc.appendChild(el('p', 'detail', e.notes || 'Pas de récap pour cet espace.'));
-        fil.appendChild(rc);
-      }
+      fil.appendChild(cadre);
+      return;
     }
+    var actif = ongletEspace[choisi] || 'recap';
 
     var sections = [
       ['taches', 'Tâches', (e.tasks || []).map(function (t) {
