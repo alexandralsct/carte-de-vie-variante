@@ -152,3 +152,9 @@ body:not(.grille) .tuile .ico-image { width: 20px; height: 20px; }
 .interrupteur input:checked + .piste { background: var(--plein); }
 .interrupteur input:checked + .piste::after { background: var(--sur-plein); transform: translateX(20px); }
 .interrupteur input:focus-visible + .piste { outline: 3px solid var(--trait-doux); outline-offset: 2px; }
+
+/* saisie d'un élément dans un espace */
+.saisie-zone { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+.saisie-item { display: flex; flex-wrap: wrap; gap: 8px; }
+.saisie-item select, .saisie-item input { min-height: 40px; border: var(--trait-l) solid var(--trait); border-radius: 12px; background: var(--surface); padding: 6px 10px; }
+.saisie-item input { flex: 1; min-width: 140px; }
