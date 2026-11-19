@@ -2,7 +2,7 @@
    La carte se lit depuis le dépôt privé avec la clé saisie une fois sur l'appareil. Tout texte reçu est affiché avec textContent. */
 (function () {
   'use strict';
-  var APPV = 49;   /* doit valoir le dernier nombre de la version affichée (index.html) */
+  var APPV = 50;   /* doit valoir le dernier nombre de la version affichée (index.html) */
   /* garde-fou : si la page et le code ne sont pas de la même version (copie en cache), on vide les caches et on recharge une fois */
   (function () {
     try {
@@ -472,6 +472,11 @@
     var carte = el('div', 'item');
     var entete = el('div', 'item-tete');
     entete.appendChild(el('span', 'item-nom', libelle || ''));
+    var sup = el('button', 'item-sup', '×');
+    sup.type = 'button';
+    sup.setAttribute('aria-label', 'Supprimer');
+    sup.addEventListener('click', function () { supprimeItem(choisi, cle); });
+    entete.appendChild(sup);
     carte.appendChild(entete);
     if ((vueCarte[cle] || vueEspace[choisi]) && detail) {
       /* vue « comme dans la carte de vie » : les champs de l'élément */
@@ -718,6 +723,57 @@
     }).catch(function (err) {
       enEcriture = false;
       messageEcriture = 'Rien n\'a été ajouté (' + err.message + '). Vérifie la clé (droit d\'écriture sur le dépôt).';
+      rendreFil();
+    });
+  }
+
+  /* suppression d'un élément : sauvegarde de l'ancien carte.json, puis retrait + trace de suppression (même modèle que la carte, pour que la synchro ne le remette pas) */
+  function supprimeItem(cleEspace, cleItem) {
+    var rub = { t: 'tasks', d: 'dates', i: 'ideas' }[cleItem.charAt(0)], idItem = cleItem.slice(1);
+    if (!rub || enEcriture) return;
+    if (!window.confirm('Supprimer cet élément ?')) return;
+    var id = identifiants(), repo = id.repo, cle = id.cle;
+    if (!repo || !cle) return;
+    enEcriture = true;
+    messageEcriture = 'Suppression…';
+    rendreFil();
+    var url = 'https://api.github.com/repos/' + repo + '/contents/carte.json';
+    var fichier = null, lu = null;
+    fetch(url, { headers: { Authorization: 'Bearer ' + cle, Accept: 'application/vnd.github+json' }, cache: 'no-store' }).then(function (r) {
+      if (!r.ok) throw new Error('lecture HTTP ' + r.status);
+      return r.json();
+    }).then(function (f) {
+      fichier = f;
+      var brut = decodeTexte(f.content);
+      try { localStorage.setItem('variante-sauvegarde', brut); } catch (e) { /* GitHub garde l'historique */ }
+      lu = JSON.parse(brut);
+      var espace = lu[cleEspace];
+      if (!espace || espace._del) throw new Error('espace introuvable');
+      var avant = espace[rub] || [];
+      var apres = avant.filter(function (x) { return String(x.id) !== idItem; });
+      if (apres.length === avant.length) throw new Error('élément introuvable');
+      var now = Date.now();
+      var tf = (espace._f && typeof espace._f[rub] === 'number') ? espace._f[rub] : (+espace._m || 0);
+      espace[rub] = apres;
+      espace._xt = Object.assign({}, espace._xt || {});
+      espace._xt[rub + '|' + idItem] = Math.max(now, (+espace._xt[rub + '|+' + idItem] || 0) + 1);
+      espace._f = Object.assign({}, espace._f || {});
+      espace._f[rub] = Math.max(now, tf + 1);
+      espace._m = Math.max(now, +espace._m || 0, espace._f[rub]);
+      return fetch(url, {
+        method: 'PUT',
+        headers: { Authorization: 'Bearer ' + cle, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: 'Suppression d\'un élément', content: encodeTexte(JSON.stringify(lu, null, 2) + '\n'), sha: fichier.sha })
+      });
+    }).then(function (r) {
+      if (!r.ok) throw new Error('écriture HTTP ' + r.status);
+      donnees = lu;
+      enEcriture = false;
+      messageEcriture = '';
+      rendre();
+    }).catch(function (err) {
+      enEcriture = false;
+      messageEcriture = 'Rien n\'a été supprimé (' + err.message + '). Vérifie la clé (droit d\'écriture sur le dépôt).';
       rendreFil();
     });
   }

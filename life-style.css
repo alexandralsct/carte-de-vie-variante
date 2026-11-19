@@ -219,3 +219,5 @@ body.grille .tuile .nom.long { font-size: 7px; }
 .ligne-vue { display: flex; align-items: center; gap: 8px; }
 .ligne-vue .bulle { max-width: none; margin: 0; }
 .ligne-vue .interrupteur { margin: 0; }
+
+.item-sup { flex: none; width: 26px; height: 26px; border: 1.5px solid var(--trait); border-radius: 50%; background: var(--surface); color: var(--trait); font: 700 16px/1 var(--display); cursor: pointer; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
