@@ -131,7 +131,7 @@
       if (k && Object.prototype.hasOwnProperty.call(tables[i], k)) return icone(null, tables[i][k]);
     }
     if (k && Object.prototype.hasOwnProperty.call(ICONES, k)) return icone(k);
-    return icone(null, ICONES_CARTE_L.star || ICONES_CARTE.star);
+    return icone(ORDRE_ICONES[(rang || 0) % ORDRE_ICONES.length]);   /* clé inconnue (module privé) : icône de LIFE par rang, comme avant */
   }
 
   function icone(cle, corps) {
