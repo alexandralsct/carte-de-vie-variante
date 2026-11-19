@@ -438,8 +438,18 @@
   }
 
   /* ---------- actions ---------- */
-  $('actu').addEventListener('click', charge);
-  $('m-actu').addEventListener('click', function () { fermeMenu(); charge(); });
+  /* Actualiser : vide les caches de l'app, retire le service worker, recharge (dernière version garantie) */
+  function actualiseTout() {
+    $('actu').classList.add('tourne');
+    var fin = function () { location.reload(); };
+    var p = [];
+    try { if (window.caches) p.push(caches.keys().then(function (k) { return Promise.all(k.filter(function (n) { return n.indexOf('carte-life-') === 0; }).map(function (n) { return caches.delete(n); })); })); } catch (x) { /* ignoré */ }
+    try { if (navigator.serviceWorker) p.push(navigator.serviceWorker.getRegistrations().then(function (r) { return Promise.all(r.map(function (g) { return g.unregister(); })); })); } catch (x) { /* ignoré */ }
+    Promise.all(p).then(fin, fin);
+    setTimeout(fin, 3000);
+  }
+  $('actu').addEventListener('click', actualiseTout);
+  $('m-actu').addEventListener('click', function () { fermeMenu(); actualiseTout(); });
   $('reglages').addEventListener('click', function () { montreConnexion(true); $('repo').value = lire('cv_repo'); $('cle').value = lire('cv_cle'); });
   $('m-reglages').addEventListener('click', function () { fermeMenu(); montreConnexion(true); $('repo').value = lire('cv_repo'); $('cle').value = lire('cv_cle'); });
   $('replier').addEventListener('click', function () {
