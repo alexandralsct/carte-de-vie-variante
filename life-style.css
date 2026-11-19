@@ -197,13 +197,21 @@ body:not(.grille) .tuile .ico-image { width: 20px; height: 20px; }
 /* tuiles de même hauteur (celle des petites), un peu plus larges */
 @media (max-width: 899px) {
   body.grille .tuiles { margin: 0 10px; gap: 6px; }
-  body.grille .tuile { aspect-ratio: auto; height: 54px; padding: 3px 2px; gap: 1px; }
-  body.grille .tuile .ico, body.grille .tuile .ico-image { width: 20px; height: 20px; }
+  body.grille .tuile { aspect-ratio: auto; height: 46px; padding: 2px 2px; gap: 0; }
+  body.grille .tuile .ico, body.grille .tuile .ico-image { width: 17px; height: 17px; }
   body.grille .tuile .nom { max-height: 2.3em; }
 }
 
 .barre-org { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 10px 6px; font-size: 12px; color: var(--encre-2); }
 .tuile.glisse { opacity: .75; transform: scale(1.06); z-index: 2; }
-body.grille .tuile .nom { font-size: 9px; line-height: 1.05; }
+body.grille .tuile .nom { font-size: 8.5px; line-height: 1; }
 body.grille .tuile .nom.moyen { font-size: 8px; }
 body.grille .tuile .nom.long { font-size: 7px; }
+
+.choix-logo { position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,.35); display: flex; align-items: flex-end; justify-content: center; }
+.choix-logo-boite { width: 100%; max-height: 75dvh; overflow-y: auto; background: var(--fond); border-top: var(--trait-l) solid var(--trait); border-radius: 18px 18px 0 0; padding: 14px 16px calc(14px + env(safe-area-inset-bottom, 0px)); }
+.choix-logo-grille { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin: 10px 0; }
+.choix-logo-b { aspect-ratio: 1; border: 1.5px solid var(--trait); border-radius: 12px; background: var(--surface); color: var(--trait); padding: 6px; cursor: pointer; }
+.choix-logo-b .ico { width: 100%; height: 100%; }
+.choix-logo-bas { display: flex; gap: 8px; justify-content: flex-end; }
+.tuile .fleches .editer { position: absolute; left: 50%; transform: translateX(-50%); top: 14px; width: 18px; height: 18px; font-size: 11px; }

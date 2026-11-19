@@ -202,6 +202,49 @@
     });
   }
   var appuiLong = false;
+  /* logo choisi par Alexandra pour une tuile : gardé sur cet appareil */
+  function logosChoisis() { try { return JSON.parse(localStorage.getItem('carte-variante-logos') || '{}') || {}; } catch (x) { return {}; } }
+  function logoChoisi(cle) {
+    var c = logosChoisis()[cle];
+    if (!c) return null;
+    var corps = c.t === 'L' ? ICONES_CARTE_L[c.k] : c.t === 'C' ? ICONES_CARTE[c.k] : null;
+    if (corps) return icone(null, corps);
+    return c.t === 'I' && Object.prototype.hasOwnProperty.call(ICONES, c.k) ? icone(c.k) : null;
+  }
+  function ouvreChoixLogo(cle, nom) {
+    var fond = el('div', 'choix-logo');
+    var boite = el('div', 'choix-logo-boite');
+    boite.appendChild(el('p', 'titre-section', 'Logo de « ' + nom + ' »'));
+    var grille = el('div', 'choix-logo-grille');
+    var ferme = function () { if (fond.parentNode) fond.parentNode.removeChild(fond); rendreTuiles(); };
+    var pose = function (t, k) {
+      var m = logosChoisis();
+      if (t) m[cle] = { t: t, k: k }; else delete m[cle];
+      try { localStorage.setItem('carte-variante-logos', JSON.stringify(m)); } catch (x) { /* ignoré */ }
+      ferme();
+    };
+    var ajoute = function (t, k, corps, libelle) {
+      var b = el('button', 'choix-logo-b');
+      b.type = 'button';
+      b.setAttribute('aria-label', libelle);
+      b.appendChild(t === 'I' ? icone(k) : icone(null, corps));
+      b.addEventListener('click', function () { pose(t, k); });
+      grille.appendChild(b);
+    };
+    Object.keys(ICONES_CARTE_L).forEach(function (k) { ajoute('L', k, ICONES_CARTE_L[k], k); });
+    Object.keys(ICONES).forEach(function (k) { if (k !== 'moi') ajoute('I', k, null, k); });
+    boite.appendChild(grille);
+    var raz = el('button', 'pilule', 'Logo par défaut');
+    raz.type = 'button';
+    raz.addEventListener('click', function () { pose(null); });
+    var annule = el('button', 'pilule', 'Fermer');
+    annule.type = 'button';
+    annule.addEventListener('click', ferme);
+    var bas = el('div', 'choix-logo-bas'); bas.appendChild(raz); bas.appendChild(annule);
+    boite.appendChild(bas);
+    fond.appendChild(boite);
+    document.body.appendChild(fond);
+  }
   function rendreTuiles() {
     var nav = $('tuiles');
     nav.textContent = '';
@@ -215,7 +258,7 @@
       b.type = 'button';
       b.setAttribute('data-cle', t.cle);
       b.setAttribute('aria-pressed', String(t.cle === choisi));
-      var ico = t.cle === 'moi' ? icone('moi') : (logoParNom[t.nom.toLowerCase()] ? icone(null, logoParNom[t.nom.toLowerCase()]) : ((t.src && logoDepuisCarte(t.src)) || iconeEspace(t.icone, t.rang)));
+      var ico = t.cle === 'moi' ? icone('moi') : logoChoisi(t.cle) || (logoParNom[t.nom.toLowerCase()] ? icone(null, logoParNom[t.nom.toLowerCase()]) : ((t.src && logoDepuisCarte(t.src)) || iconeEspace(t.icone, t.rang)));
       b.appendChild(ico);
       if (typeof t.icone === 'string' && t.icone.indexOf('f:') === 0) chargeImageTuile(ico, t.icone.slice(2));
       b.appendChild(el('span', 'nom' + tailleNom(t.nom), t.nom.replace(/·/g, '·\u200b')));
@@ -228,6 +271,12 @@
           f.addEventListener('click', function (ev) { ev.stopPropagation(); deplace(t.cle, a[1]); });
           fl.appendChild(f);
         });
+        if (t.cle !== 'moi' && t.cle !== 'chemin' && t.cle !== 'assistants') {
+          var ed = el('span', 'fleche editer', '✎');
+          ed.setAttribute('role', 'button'); ed.setAttribute('aria-label', 'Choisir le logo de ' + t.nom);
+          ed.addEventListener('click', function (ev) { ev.stopPropagation(); ouvreChoixLogo(t.cle, t.nom); });
+          fl.appendChild(ed);
+        }
         b.appendChild(fl);
         b.addEventListener('click', function () { /* en mode organiser, la tuile ne s'ouvre pas */ });
       } else {
