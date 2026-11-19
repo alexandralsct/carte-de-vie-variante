@@ -100,12 +100,20 @@
     return m >= 11 ? ' long' : m >= 9 ? ' moyen' : '';
   }
   /* logos de la carte : fournis à l'exécution par la vraie carte (même origine) via sa propre fonction icoHTML ; rien n'est copié dans ce dépôt */
-  var logosCarteLus = false, logosLances = false, fnIcoCarte = null;
+  var logosCarteLus = false, logosLances = false, fnIcoCarte = null, fnSuggCarte = null, fnLogoCarte = null, tablesCarte = null;
   function logoDepuisCarte(e) {
     if (!fnIcoCarte) return null;
     try {
       var tmp = document.createElement('div');
-      tmp.innerHTML = fnIcoCarte(e.id ? e : Object.assign({}, e, { id: String(e._cle || '').replace(/^espaces\//, '') }));   /* tracés de la carte (balises svg/g/path uniquement) */
+      var cle = e.icon || e.id || String(e._cle || '').replace(/^espaces\//, '');
+      if (!e.logo && fnSuggCarte && fnLogoCarte && tablesCarte && !tablesCarte[cle]) {
+        /* icône inconnue : le catalogue de la carte propose un logo d'après le nom de l'espace */
+        var sg = fnSuggCarte(cle, e.name || '') || [];
+        for (var q = 0; q < sg.length; q++) {
+          if (sg[q][0] && String(sg[q][0]).indexOf('m:') === 0) { tmp.innerHTML = fnLogoCarte(sg[q][0]); break; }
+        }
+      }
+      if (!tmp.firstChild) tmp.innerHTML = fnIcoCarte(e.id ? e : Object.assign({}, e, { id: String(e._cle || '').replace(/^espaces\//, '') }));   /* tracés de la carte (balises svg/g/path uniquement) */
       var g = tmp.querySelector('.vL') || tmp.querySelector('g') || tmp.querySelector('svg');
       if (!g) return null;
       var corps = g.innerHTML.replace(/ class="[^"]*"/g, '');
@@ -126,7 +134,8 @@
         var P = w.eval('typeof ICONS!=="undefined"?ICONS:null');
         if (fn && P) {
           var nb = Object.keys(P).length;
-          fnIcoCarte = fn;
+          fnIcoCarte = fn; tablesCarte = P;
+          try { fnSuggCarte = w.eval('typeof logoSugg==="function"?logoSugg:null'); fnLogoCarte = w.eval('typeof logoSvg==="function"?logoSvg:null'); } catch (x2) { /* sans suggestion */ }
           logosCarteLus = true;
           if (nb !== nb0 || essais % 5 === 0) { nb0 = nb; if (donnees) rendreTuiles(); }   /* le module de la propriétaire ajoute ses logos au fil du chargement */
         }
@@ -148,7 +157,7 @@
       b.type = 'button';
       b.setAttribute('data-cle', t.cle);
       b.setAttribute('aria-pressed', String(t.cle === choisi));
-      var ico = t.cle === 'moi' ? icone('coach') : ((t.src && logoDepuisCarte(t.src)) || iconeEspace(t.icone, t.rang));
+      var ico = t.cle === 'moi' ? icone('moi') : ((t.src && logoDepuisCarte(t.src)) || iconeEspace(t.icone, t.rang));
       b.appendChild(ico);
       if (typeof t.icone === 'string' && t.icone.indexOf('f:') === 0) chargeImageTuile(ico, t.icone.slice(2));
       b.appendChild(el('span', 'nom' + tailleNom(t.nom), t.nom.replace(/·/g, '·\u200b')));
@@ -187,6 +196,7 @@
     comite: '<path d="M3 21h18M5 21V10M19 21V10M9 21v-7M15 21v-7M2 10l10-6 10 6z"/>',
     brainstorm: '<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/>',
     coach: '<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/>',
+    moi: '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/>',
     chemin: '<circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>',
     assistants: '<rect x="4" y="7" width="16" height="12" rx="3"/><path d="M12 7V4M9 13h.01M15 13h.01M9 16.5h6"/>'
   };
@@ -194,6 +204,7 @@
 
   /* icône en trait fin, comme dans LIFE (aucune couleur d'espace) */
   /* icône de la carte pour un espace (clé connue seulement), sinon icône LIFE */
+  var ETOILE = '<path d="M24 6l5 12h13l-10 8 4 13-12-8-12 8 4-13-10-8h13z"/>';
   function iconeEspace(cle, rang) {
     /* comme la carte : « t:clé » = clé après le préfixe ; clé inconnue = étoile */
     var k = typeof cle === 'string' ? cle : '';
@@ -203,8 +214,8 @@
       if (k && Object.prototype.hasOwnProperty.call(tables[i], k)) return icone(null, tables[i][k]);
     }
     if (k && Object.prototype.hasOwnProperty.call(ICONES, k)) return icone(k);
-    if (logosCarteLus) return icone(null, ICONES_CARTE_L.star || ICONES_CARTE.star);   /* comme la carte */
-    return icone(ORDRE_ICONES[(rang || 0) % ORDRE_ICONES.length]);   /* tables pas encore lues : icône LIFE par rang */
+    if (logosCarteLus) return icone(null, ICONES_CARTE_L.star || ICONES_CARTE.star || ETOILE);   /* comme la carte */
+    return icone(null, ETOILE);   /* neutre : jamais une icône sans rapport avec le sujet */
   }
 
   function icone(cle, corps) {
