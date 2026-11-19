@@ -201,6 +201,50 @@
       });
     });
   }
+  /* logo par défaut d'après des mots génériques du nom, seulement quand la carte n'a pas de logo (étoile) */
+  var MOTS_LOGO = [
+    [/medit|vipassana|zen|yoga|relax/, 'L', 'petales'],
+    [/psycho|therap|emotion|mental/, 'L', 'regard'],
+    [/metamorph|transform/, 'I', 'metamorphose'],
+    [/business|invest|bourse|financ|argent|banque|patrimoine|epargne/, 'I', 'patrimoine'],
+    [/appartement|immo|logement|loyer|location/, 'L', 'immo'],
+    [/maison|domicile/, 'I', 'general'],
+    [/sport|fitness|muscu|gym|course a pied|natation/, 'L', 'sport'],
+    [/voyage|vacance|sejour/, 'I', 'voyage'],
+    [/formation|cours|etude|apprendre|ecole|diplome|master/, 'I', 'experts'],
+    [/amour|couple|mariage|rencontre/, 'I', 'coach'],
+    [/dent|orthodon/, 'L', 'coquillage'],
+    [/bebe|enfant|naissance|grossesse/, 'L', 'pousse'],
+    [/sante|medic|soin|docteur/, 'L', 'sante'],
+    [/ami|social|famille/, 'L', 'amis']
+  ];
+  function normNom(n) { return String(n || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
+  function iconeParMots(nom) {
+    var n = normNom(nom);
+    for (var i = 0; i < MOTS_LOGO.length; i++) {
+      if (MOTS_LOGO[i][0].test(n)) {
+        var k = MOTS_LOGO[i][2];
+        if (MOTS_LOGO[i][1] === 'I') return Object.prototype.hasOwnProperty.call(ICONES, k) ? icone(k) : null;
+        if (ICONES_CARTE_L[k]) return icone(null, ICONES_CARTE_L[k]);
+      }
+    }
+    return null;
+  }
+  function estEtoile(corps) {
+    var sig = String(ICONES_CARTE_L.star || ETOILE).replace(/\s/g, '').slice(0, 24);
+    return !corps || String(corps).replace(/\s/g, '').indexOf(sig) === 0 || String(corps).replace(/\s/g, '').indexOf('M24') === 0 && /l5\s*12|5,?12/.test(String(corps));
+  }
+  function logoPourTuile(t) {
+    var c = logoChoisi(t.cle);
+    if (c) return c;
+    var s = logoParNom[t.nom.toLowerCase()];
+    if (s && !estEtoile(s)) return icone(null, s);
+    var d = t.src ? logoDepuisCarte(t.src) : null;
+    if (d && !estEtoile(d.innerHTML)) return d;
+    var m = iconeParMots(t.nom);
+    if (m) return m;
+    return s ? icone(null, s) : (d || iconeEspace(t.icone, t.rang));
+  }
   var appuiLong = false;
   /* logo choisi par Alexandra pour une tuile : gardé sur cet appareil */
   function logosChoisis() { try { return JSON.parse(localStorage.getItem('carte-variante-logos') || '{}') || {}; } catch (x) { return {}; } }
@@ -258,7 +302,7 @@
       b.type = 'button';
       b.setAttribute('data-cle', t.cle);
       b.setAttribute('aria-pressed', String(t.cle === choisi));
-      var ico = t.cle === 'moi' ? icone('moi') : logoChoisi(t.cle) || (logoParNom[t.nom.toLowerCase()] ? icone(null, logoParNom[t.nom.toLowerCase()]) : ((t.src && logoDepuisCarte(t.src)) || iconeEspace(t.icone, t.rang)));
+      var ico = t.cle === 'moi' ? icone('moi') : (t.cle === 'chemin' || t.cle === 'assistants' ? iconeEspace(t.icone, t.rang) : logoPourTuile(t));
       b.appendChild(ico);
       if (typeof t.icone === 'string' && t.icone.indexOf('f:') === 0) chargeImageTuile(ico, t.icone.slice(2));
       b.appendChild(el('span', 'nom' + tailleNom(t.nom), t.nom.replace(/·/g, '·\u200b')));
