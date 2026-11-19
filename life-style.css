@@ -171,3 +171,4 @@ body:not(.grille) .tuile .ico-image { width: 20px; height: 20px; }
 
 #actu.tourne svg{animation:tourne .8s linear infinite}
 @keyframes tourne{to{transform:rotate(360deg)}}
+.tuile.on .ico-image { background: var(--sur-plein); }
