@@ -135,6 +135,7 @@
         var P = w.eval('typeof ICONS!=="undefined"?ICONS:null');
         if (fn && P) {
           var nb = Object.keys(P).length;
+          if (!fnIcoCarte) refEtoile = null;
           fnIcoCarte = fn; tablesCarte = P;
           try { fnSuggCarte = w.eval('typeof logoSugg==="function"?logoSugg:null'); fnLogoCarte = w.eval('typeof logoSvg==="function"?logoSvg:null'); } catch (x2) { /* sans suggestion */ }
           logosCarteLus = true;
@@ -238,7 +239,7 @@
   var refEtoile = null;
   function estEtoile(corps) {
     if (!corps) return true;
-    if (refEtoile === null) {
+    if (refEtoile === null || (!fnIcoCarte && refEtoile === 'tables')) {
       refEtoile = '';
       try {
         var r = fnIcoCarte ? fnIcoCarte({ icon: 'star', id: 'star' }) : '';
@@ -246,27 +247,46 @@
         var g = t.querySelector('.vL') || t.querySelector('g');
         refEtoile = g ? normSvg(g.innerHTML) : '';
       } catch (x) { refEtoile = ''; }
-      if (!refEtoile) refEtoile = normSvg(ICONES_CARTE_L.star || ETOILE);
+      if (!refEtoile) { refEtoile = normSvg(ICONES_CARTE_L.star || ETOILE); if (!fnIcoCarte) { var ref0 = refEtoile; refEtoile = 'tables'; return n0(corps, ref0); } }
     }
+    return n0(corps, refEtoile);
+  }
+  function n0(corps, refEtoile) {
     var n = normSvg(corps);
     return n === refEtoile || n.indexOf('M24') >= 0 && n.length < 160 && /<path/.test(n) && n.indexOf(refEtoile.slice(0, 40)) >= 0;
   }
   function logoPourTuile(t) {
-    var c = logoChoisi(t.cle);
+    var c = logoChoisi(t.cle, t.nom);
     if (c) return c;
     var s = logoParNom[t.nom.toLowerCase()];
-    if (s && !estEtoile(s)) return icone(null, s);
+    /* la carte met elle-même une étoile quand l'espace n'a ni logo ni icône connue */
+    var etoileDonnee = !!(t.src && !t.src.logo && tablesCarte && !tablesCarte[t.icone]);
+    if (s && !etoileDonnee && !estEtoile(s)) return icone(null, s);
     var d = t.src ? logoDepuisCarte(t.src) : null;
-    if (d && !estEtoile(d.innerHTML)) return d;
+    if (d && !etoileDonnee && !estEtoile(d.innerHTML)) return d;
     var m = iconeParMots(t.nom);
     if (m) return m;
     return s ? icone(null, s) : (d || iconeEspace(t.icone, t.rang));
   }
+  /* import des logos par un lien personnel (#logos=…) : les noms restent dans le lien, jamais dans le dépôt */
+  function importeLogos() {
+    var m = /[#&]logos=([^&]+)/.exec(location.hash || '');
+    if (!m) return;
+    try {
+      var o = JSON.parse(atob(decodeURIComponent(m[1])));
+      var cur = logosChoisis();
+      Object.keys(o).forEach(function (k) { cur['nom:' + normNom(k)] = { t: o[k][0], k: o[k][1] }; });
+      localStorage.setItem('carte-variante-logos', JSON.stringify(cur));
+      history.replaceState(null, '', location.pathname + location.search);
+    } catch (x) { /* lien invalide : ignoré */ }
+  }
+  importeLogos();
   var appuiLong = false;
   /* logo choisi par Alexandra pour une tuile : gardé sur cet appareil */
   function logosChoisis() { try { return JSON.parse(localStorage.getItem('carte-variante-logos') || '{}') || {}; } catch (x) { return {}; } }
-  function logoChoisi(cle) {
-    var c = logosChoisis()[cle];
+  function logoChoisi(cle, nom) {
+    var m0 = logosChoisis();
+    var c = m0[cle] || m0['nom:' + normNom(nom)];
     if (!c) return null;
     var corps = c.t === 'L' ? ICONES_CARTE_L[c.k] : c.t === 'C' ? ICONES_CARTE[c.k] : null;
     if (corps) return icone(null, corps);
