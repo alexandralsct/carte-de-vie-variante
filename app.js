@@ -2,6 +2,23 @@
    La carte se lit depuis le dépôt privé avec la clé saisie une fois sur l'appareil. Tout texte reçu est affiché avec textContent. */
 (function () {
   'use strict';
+  var APPV = 49;   /* doit valoir le dernier nombre de la version affichée (index.html) */
+  /* garde-fou : si la page et le code ne sont pas de la même version (copie en cache), on vide les caches et on recharge une fois */
+  (function () {
+    try {
+      var v = document.getElementById('ver');
+      var n = v ? parseInt(String(v.textContent).replace(/\D*\d+\.\d+\./, ''), 10) : APPV;
+      if (n !== APPV && !sessionStorage.getItem('rv' + n)) {
+        sessionStorage.setItem('rv' + n, '1');
+        var fin = function () { location.reload(); };
+        var p = [];
+        if (window.caches) p.push(caches.keys().then(function (k) { return Promise.all(k.filter(function (x) { return x.indexOf('carte-life-') === 0; }).map(function (x) { return caches.delete(x); })); }));
+        if (navigator.serviceWorker) p.push(navigator.serviceWorker.getRegistrations().then(function (r) { return Promise.all(r.map(function (g) { return g.unregister(); })); }));
+        Promise.all(p).then(fin, fin);
+        setTimeout(fin, 3000);
+      }
+    } catch (x) { /* ignoré */ }
+  })();
 
   var $ = function (id) { return document.getElementById(id); };
   var donnees = null;
