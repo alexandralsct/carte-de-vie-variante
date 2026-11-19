@@ -211,11 +211,11 @@
           var d = cadre.contentDocument;
           var txt = d && d.body ? d.body.textContent.trim() : '';
           if (d && (/^404|not found/i.test(d.title || '') || /404/.test(txt.slice(0, 80)))) {
-            info.querySelector('p').textContent = 'La carte ne s\'ouvre pas ici. Utilise « Ouvrir la carte en plein écran ».';
+            info.querySelector('p').textContent = 'La carte ne s\'ouvre pas ici.';
             clearInterval(t); return;
           }
           var tiroir = d && (page ? d.querySelector('.page:not([hidden])') : d.getElementById('drawer'));
-          if (!tiroir) { if (essais > 40) { info.querySelector('p').textContent = 'La catégorie ne s\'ouvre pas ici. Utilise « Ouvrir la carte en plein écran ».'; clearInterval(t); } return; }
+          if (!tiroir) { if (essais > 40) { info.querySelector('p').textContent = 'La catégorie ne s\'ouvre pas ici.'; clearInterval(t); } return; }
           if (!d.getElementById('vue-seule')) {
             var st = d.createElement('style'); st.id = 'vue-seule'; st.textContent = STYLE; d.head.appendChild(st);
           }
@@ -226,7 +226,7 @@
               if (!nom || noeuds[i].textContent.trim().toLowerCase().indexOf(nom) === 0) { cible = noeuds[i]; break; }
             }
             if (cible) cible.click();
-            else if (essais > 40) { info.querySelector('p').textContent = 'Cette catégorie ne s\'ouvre pas ici. Utilise « Ouvrir la carte en plein écran ».'; clearInterval(t); }
+            else if (essais > 40) { info.querySelector('p').textContent = 'Cette catégorie ne s\'ouvre pas ici.'; clearInterval(t); }
           } else if (!ouvert) {
             ouvert = true;
             cadre.style.visibility = 'visible';
@@ -236,11 +236,6 @@
         if (essais > 600) clearInterval(t);
       }, 300);
     });
-    var lien = el('a', 'pilule', 'Ouvrir la carte en plein écran');
-    lien.href = '../carte-de-vie/';
-    lien.target = '_blank';
-    lien.rel = 'noopener';
-    fil.appendChild(lien);
     fil.appendChild(cadre);
   }
 
@@ -262,7 +257,9 @@
 
     var e = donnees[choisi];
     if (!e) { fil.appendChild(bulle('Cet espace n\'existe plus.', false)); return; }
-    fil.appendChild(bulle((e.name || 'Sans nom') + ' · ' + tachesOuvertes(e) + ' tâche(s) ouverte(s).', false));
+    var ban = bulle((e.name || 'Sans nom') + ' · ' + tachesOuvertes(e) + ' tâche(s) en cours', false);
+    ban.className += ' compacte';
+    fil.appendChild(ban);
     fil.appendChild(interrupteurVue());
     if (vueEspace[choisi]) { ajouteCadreCarte(fil, e.name); return; }
     var actif = ongletEspace[choisi] || 'recap';
