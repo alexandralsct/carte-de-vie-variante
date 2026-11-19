@@ -78,6 +78,23 @@
   }
 
   /* ---------- barre des espaces (tuiles carrées) ---------- */
+  /* ordre des tuiles : choisi par Alexandra, gardé sur cet appareil (la carte n'est pas modifiée) */
+  var organise = false;
+  function ordreGarde() { try { return JSON.parse(localStorage.getItem('carte-variante-ordre') || '[]') || []; } catch (x) { return []; } }
+  function ordonne(liste) {
+    var o = ordreGarde();
+    return liste.map(function (t, i) { return { t: t, k: o.indexOf(t.cle) < 0 ? 1000 + i : o.indexOf(t.cle) }; })
+      .sort(function (a, b) { return a.k - b.k; }).map(function (x) { return x.t; });
+  }
+  function deplace(cle, sens) {
+    var cles = $('tuiles').querySelectorAll('.tuile');
+    var l = Array.prototype.map.call(cles, function (b) { return b.getAttribute('data-cle'); });
+    var i = l.indexOf(cle), n = i + sens;
+    if (i < 0 || n < 0 || n >= l.length) return;
+    l.splice(n, 0, l.splice(i, 1)[0]);
+    try { localStorage.setItem('carte-variante-ordre', JSON.stringify(l)); } catch (x) { /* ignoré */ }
+    rendreTuiles();
+  }
   function tailleNom(nom) {
     var m = String(nom).split(/\s+/).reduce(function (a, w) { return Math.max(a, w.length); }, 0);
     return m >= 11 ? ' long' : m >= 9 ? ' moyen' : '';
@@ -118,18 +135,31 @@
     nav.textContent = '';
     var moi = { cle: 'moi', nom: 'Moi', badge: 0, couleur: '#002FA7' };
     var speciales = [{ cle: 'chemin', nom: 'Chemin de vie', badge: 0, couleur: '#002FA7', icone: 'chemin', rang: 50 }, { cle: 'assistants', nom: 'Mes assistants', badge: 0, couleur: '#002FA7', icone: 'assistants', rang: 51 }];
-    [moi].concat(espaces().map(function (e, i) {
+    ordonne([moi].concat(espaces().map(function (e, i) {
       return { cle: e._cle, nom: e.name || 'Sans nom', badge: tachesOuvertes(e), couleur: e.color || '#002FA7', rang: i, icone: e.icon || e.id };
-    })).concat(speciales).forEach(function (t) {
+    })).concat(speciales)).forEach(function (t) {
       var b = el('button', 'tuile' + (t.cle === choisi ? ' on' : '') + tailleNom(t.nom));
       b.type = 'button';
+      b.setAttribute('data-cle', t.cle);
       b.setAttribute('aria-pressed', String(t.cle === choisi));
       var ico = t.cle === 'moi' ? icone('coach') : iconeEspace(t.icone, t.rang);
       b.appendChild(ico);
       if (typeof t.icone === 'string' && t.icone.indexOf('f:') === 0) chargeImageTuile(ico, t.icone.slice(2));
       b.appendChild(el('span', 'nom' + tailleNom(t.nom), t.nom));
       if (t.badge) b.appendChild(el('span', 'pastille-n', t.badge));
-      b.addEventListener('click', function () { choisi = t.cle; vueCarte = {}; rendre(); });
+      if (organise) {
+        var fl = el('span', 'fleches');
+        [['‹', -1, 'Avancer'], ['›', 1, 'Reculer']].forEach(function (a) {
+          var f = el('span', 'fleche', a[0]);
+          f.setAttribute('role', 'button'); f.setAttribute('aria-label', a[2] + ' la tuile ' + t.nom);
+          f.addEventListener('click', function (ev) { ev.stopPropagation(); deplace(t.cle, a[1]); });
+          fl.appendChild(f);
+        });
+        b.appendChild(fl);
+        b.addEventListener('click', function () { /* en mode organiser, la tuile ne s'ouvre pas */ });
+      } else {
+        b.addEventListener('click', function () { choisi = t.cle; vueCarte = {}; rendre(); });
+      }
       nav.appendChild(b);
     });
   }
@@ -518,6 +548,12 @@
     setTimeout(fin, 3000);
   }
   $('actu').addEventListener('click', actualiseTout);
+  $('m-organiser').addEventListener('click', function () {
+    fermeMenu();
+    organise = !organise;
+    $('m-organiser').textContent = organise ? 'Terminer l\'organisation' : 'Organiser mes tuiles';
+    rendreTuiles();
+  });
   $('m-actu').addEventListener('click', function () { fermeMenu(); actualiseTout(); });
   $('reglages').addEventListener('click', function () { montreConnexion(true); $('repo').value = lire('cv_repo'); $('cle').value = lire('cv_cle'); });
   $('m-reglages').addEventListener('click', function () { fermeMenu(); montreConnexion(true); $('repo').value = lire('cv_repo'); $('cle').value = lire('cv_cle'); });

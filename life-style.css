@@ -175,3 +175,6 @@ body:not(.grille) .tuile .ico-image { width: 20px; height: 20px; }
 
 .bulle.compacte { padding: 4px 10px; border-radius: 12px; font-size: 12px; line-height: 1.2; margin-bottom: 4px; }
 .bulle.compacte p { margin: 0; font-size: 12px; }
+
+.tuile .fleches { position: absolute; left: -4px; right: -4px; top: -9px; display: flex; justify-content: space-between; padding: 0 3px; }
+.tuile .fleche { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--sur-plein); background: var(--plein); color: var(--sur-plein); font: 700 15px/1 var(--display); cursor: pointer; }
