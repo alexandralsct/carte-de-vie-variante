@@ -542,8 +542,10 @@
     if (!e) { fil.appendChild(bulle('Cet espace n\'existe plus.', false)); return; }
     var ban = bulle((e.name || 'Sans nom') + ' · ' + tachesOuvertes(e) + ' tâche(s) en cours', false);
     ban.className += ' compacte';
-    fil.appendChild(ban);
-    fil.appendChild(interrupteurVue());
+    var ligne = el('div', 'ligne-vue');
+    ligne.appendChild(interrupteurVue());   /* interrupteur à gauche, sur la même ligne que les tâches */
+    ligne.appendChild(ban);
+    fil.appendChild(ligne);
     if (vueEspace[choisi]) { ajouteCadreCarte(fil, e.name); return; }
     var actif = ongletEspace[choisi] || 'recap';
 
