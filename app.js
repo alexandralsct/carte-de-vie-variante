@@ -200,25 +200,39 @@
     cadre.setAttribute('title', 'Carte de vie');
     cadre.src = '../carte-de-vie/';
     var nom = String(nomEspace || '').trim().toLowerCase();
+    cadre.style.visibility = 'hidden';   /* rien de la carte n'est visible tant que la catégorie n'est pas ouverte */
+    var STYLE = 'body *{visibility:hidden!important}#drawer,#drawer *{visibility:visible!important}#closeBtn{display:none!important}';
     cadre.addEventListener('load', function () {
-      var essais = 0;
+      var essais = 0, ouvert = false;
       var t = setInterval(function () {
         essais++;
         try {
           var d = cadre.contentDocument;
           var txt = d && d.body ? d.body.textContent.trim() : '';
-          if (d && (/^404|not found/i.test(d.title || '') || /404/.test(txt.slice(0, 80)) || (essais > 6 && txt.length < 20))) {
+          if (d && (/^404|not found/i.test(d.title || '') || /404/.test(txt.slice(0, 80)))) {
             info.querySelector('p').textContent = 'La carte ne s\'ouvre pas ici. Utilise « Ouvrir la carte en plein écran ».';
             clearInterval(t); return;
           }
-          var noeuds = d ? d.querySelectorAll('.node') : [];
-          if (noeuds.length && info.parentNode) info.parentNode.removeChild(info);
-          for (var i = 0; nom && i < noeuds.length; i++) {
-            if (noeuds[i].textContent.trim().toLowerCase().indexOf(nom) === 0) { noeuds[i].click(); clearInterval(t); return; }
+          var tiroir = d && d.getElementById('drawer');
+          if (!tiroir) { if (essais > 40) { info.querySelector('p').textContent = 'La catégorie ne s\'ouvre pas ici. Utilise « Ouvrir la carte en plein écran ».'; clearInterval(t); } return; }
+          if (!d.getElementById('vue-seule')) {
+            var st = d.createElement('style'); st.id = 'vue-seule'; st.textContent = STYLE; d.head.appendChild(st);
           }
-          if (!nom && noeuds.length) clearInterval(t);
+          if (tiroir.hidden) {
+            /* ouvre (ou rouvre) la catégorie de la tuile ; jamais d'autre */
+            var cible = null, noeuds = d.querySelectorAll(nom ? '.node' : '.moi');
+            for (var i = 0; i < noeuds.length; i++) {
+              if (!nom || noeuds[i].textContent.trim().toLowerCase().indexOf(nom) === 0) { cible = noeuds[i]; break; }
+            }
+            if (cible) cible.click();
+            else if (essais > 40) { info.querySelector('p').textContent = 'Cette catégorie ne s\'ouvre pas ici. Utilise « Ouvrir la carte en plein écran ».'; clearInterval(t); }
+          } else if (!ouvert) {
+            ouvert = true;
+            cadre.style.visibility = 'visible';
+            if (info.parentNode) info.parentNode.removeChild(info);
+          }
         } catch (x) { clearInterval(t); }
-        if (essais > 30) clearInterval(t);
+        if (essais > 600) clearInterval(t);
       }, 300);
     });
     var lien = el('a', 'pilule', 'Ouvrir la carte en plein écran');
