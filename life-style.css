@@ -193,3 +193,11 @@ body:not(.grille) .tuile .ico-image { width: 20px; height: 20px; }
   .saisie { padding: 6px 16px calc(8px + env(safe-area-inset-bottom, 0px)); gap: 8px; }
   .cadre-carte { height: calc(100dvh - 170px); min-height: 380px; }
 }
+
+/* tuiles de même hauteur (celle des petites), un peu plus larges */
+@media (max-width: 899px) {
+  body.grille .tuiles { margin: 0 10px; gap: 6px; }
+  body.grille .tuile { aspect-ratio: auto; height: 66px; padding: 4px 2px; gap: 2px; }
+  body.grille .tuile .ico, body.grille .tuile .ico-image { width: 24px; height: 24px; }
+  body.grille .tuile .nom { max-height: 2.3em; }
+}

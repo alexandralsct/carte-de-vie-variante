@@ -96,7 +96,7 @@
     rendreTuiles();
   }
   function tailleNom(nom) {
-    var m = String(nom).split(/\s+/).reduce(function (a, w) { return Math.max(a, w.length); }, 0);
+    var m = String(nom).split(/[\s·]+/).reduce(function (a, w) { return Math.max(a, w.length); }, 0);
     return m >= 11 ? ' long' : m >= 9 ? ' moyen' : '';
   }
   /* logos de la carte : fournis à l'exécution par la vraie carte (même origine) via sa propre fonction icoHTML ; rien n'est copié dans ce dépôt */
@@ -151,7 +151,7 @@
       var ico = t.cle === 'moi' ? icone('coach') : ((t.src && logoDepuisCarte(t.src)) || iconeEspace(t.icone, t.rang));
       b.appendChild(ico);
       if (typeof t.icone === 'string' && t.icone.indexOf('f:') === 0) chargeImageTuile(ico, t.icone.slice(2));
-      b.appendChild(el('span', 'nom' + tailleNom(t.nom), t.nom));
+      b.appendChild(el('span', 'nom' + tailleNom(t.nom), t.nom.replace(/·/g, '·\u200b')));
       if (t.badge) b.appendChild(el('span', 'pastille-n', t.badge));
       if (organise) {
         var fl = el('span', 'fleches');
