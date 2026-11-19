@@ -230,9 +230,26 @@
     }
     return null;
   }
+  function normSvg(html) {
+    var tmp = document.createElement('div');
+    tmp.innerHTML = '<svg>' + html + '</svg>';
+    return tmp.innerHTML.replace(/ class="[^"]*"/g, '').replace(/ style="[^"]*"/g, '').replace(/\s/g, '');
+  }
+  var refEtoile = null;
   function estEtoile(corps) {
-    var sig = String(ICONES_CARTE_L.star || ETOILE).replace(/\s/g, '').slice(0, 24);
-    return !corps || String(corps).replace(/\s/g, '').indexOf(sig) === 0 || String(corps).replace(/\s/g, '').indexOf('M24') === 0 && /l5\s*12|5,?12/.test(String(corps));
+    if (!corps) return true;
+    if (refEtoile === null) {
+      refEtoile = '';
+      try {
+        var r = fnIcoCarte ? fnIcoCarte({ icon: 'star', id: 'star' }) : '';
+        var t = document.createElement('div'); t.innerHTML = r;
+        var g = t.querySelector('.vL') || t.querySelector('g');
+        refEtoile = g ? normSvg(g.innerHTML) : '';
+      } catch (x) { refEtoile = ''; }
+      if (!refEtoile) refEtoile = normSvg(ICONES_CARTE_L.star || ETOILE);
+    }
+    var n = normSvg(corps);
+    return n === refEtoile || n.indexOf('M24') >= 0 && n.length < 160 && /<path/.test(n) && n.indexOf(refEtoile.slice(0, 40)) >= 0;
   }
   function logoPourTuile(t) {
     var c = logoChoisi(t.cle);
@@ -728,6 +745,15 @@
     setTimeout(fin, 3000);
   }
   $('actu').addEventListener('click', actualiseTout);
+  $('m-diag').addEventListener('click', function () {
+    fermeMenu();
+    var noms = Object.keys(logoParNom), etoiles = noms.filter(function (n) { return estEtoile(logoParNom[n]); });
+    var l = ['Diagnostic des logos',
+      'fonction de la carte : ' + (fnIcoCarte ? 'oui' : 'non') + ' · tables : ' + (tablesCarte ? Object.keys(tablesCarte).length : 0),
+      'bulles lues dans la carte : ' + nbBulles + ' · avec logo : ' + noms.length + ' · étoiles : ' + etoiles.length,
+      'étoiles : ' + (etoiles.join(', ') || 'aucune')];
+    var fil = $('fil'); var bl = bulle(l.join('\n'), false); bl.firstChild.style.whiteSpace = 'pre-wrap'; fil.insertBefore(bl, fil.firstChild);
+  });
   $('m-organiser').addEventListener('click', function () {
     fermeMenu();
     organise = !organise;
