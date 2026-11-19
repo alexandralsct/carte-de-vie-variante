@@ -231,6 +231,7 @@
     rendreFil();
     montreEchanges();
     $('fil').scrollTop = 0;
+    prete();
   }
 
   /* ---------- Omniscient : même échange que la carte (point d'accroche « app-lien ») ---------- */
@@ -282,7 +283,12 @@
   $('texte').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); envoieSaisie(); } });
 
   /* ---------- écrans : connexion neutre, puis carte ---------- */
+  /* coque neutre : tant que rien n'est prêt, le HTML reste masqué (pas d'ancienne version affichée) */
+  function prete() { document.documentElement.classList.remove('chargement'); }
+  setTimeout(prete, 6000);   /* filet : jamais d'écran blanc si le réseau traîne */
+
   function montreConnexion(vrai) {
+    if (vrai) prete();
     $('ecran-connexion').hidden = !vrai;
     $('tuiles').hidden = vrai;
     $('replier').parentNode.hidden = vrai;
