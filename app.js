@@ -407,6 +407,9 @@
       return;
     }
     montreConnexion(false);
+    var bt = $('actu');
+    bt.classList.add('tourne');
+    try { if (navigator.serviceWorker) navigator.serviceWorker.getRegistration().then(function (g) { if (g) g.update(); }); } catch (x) { /* sans service worker */ }
     fetch('https://api.github.com/repos/' + repo + '/contents/carte.json', {
       headers: { Authorization: 'Bearer ' + cle, Accept: 'application/vnd.github.raw+json' },
       cache: 'no-store'
@@ -415,9 +418,15 @@
       return r.json();
     }).then(function (j) {
       donnees = j;
+      bt.classList.remove('tourne');
       rendre();
     }).catch(function (err) {
-      donnees = null;
+      bt.classList.remove('tourne');
+      if (donnees) {
+        /* on garde ce qui est affiché, on dit seulement que l'actualisation a échoué */
+        $('fil').insertBefore(bulle('Actualisation impossible (' + err.message + '). Ce qui est affiché est la dernière version lue.', false), $('fil').firstChild);
+        return;
+      }
       montreConnexion(true);
       $('etat-connexion').textContent = 'Impossible de lire la carte (' + err.message + '). Vérifie le dépôt et la clé.';
     });
