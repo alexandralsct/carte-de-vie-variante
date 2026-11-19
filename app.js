@@ -765,8 +765,9 @@
     setTimeout(fin, 3000);
   }
   $('actu').addEventListener('click', actualiseTout);
+  $('m-retour').addEventListener('click', function () { if (donnees) { montreConnexion(false); rendre(); } });
   $('m-diag').addEventListener('click', function () {
-    fermeMenu();
+    if (donnees) { montreConnexion(false); rendre(); }
     var noms = Object.keys(logoParNom), etoiles = noms.filter(function (n) { return estEtoile(logoParNom[n]); });
     var l = ['Diagnostic des logos',
       'fonction de la carte : ' + (fnIcoCarte ? 'oui' : 'non') + ' · tables : ' + (tablesCarte ? Object.keys(tablesCarte).length : 0),
@@ -775,14 +776,12 @@
     var fil = $('fil'); var bl = bulle(l.join('\n'), false); bl.firstChild.style.whiteSpace = 'pre-wrap'; fil.insertBefore(bl, fil.firstChild);
   });
   $('m-organiser').addEventListener('click', function () {
-    fermeMenu();
+    if (donnees) montreConnexion(false);
     organise = !organise;
     $('m-organiser').textContent = organise ? 'Terminer l\'organisation' : 'Organiser mes tuiles';
     rendreTuiles();
   });
-  $('m-actu').addEventListener('click', function () { fermeMenu(); actualiseTout(); });
   $('reglages').addEventListener('click', function () { montreConnexion(true); $('repo').value = lire('cv_repo'); $('cle').value = lire('cv_cle'); });
-  $('m-reglages').addEventListener('click', function () { fermeMenu(); montreConnexion(true); $('repo').value = lire('cv_repo'); $('cle').value = lire('cv_cle'); });
   $('replier').addEventListener('click', function () {
     repliees = !repliees;
     document.body.classList.toggle('grille', !repliees);
@@ -791,15 +790,7 @@
     rendreTuiles();
   });
 
-  function fermeMenu() { $('menu').hidden = true; $('plus').setAttribute('aria-expanded', 'false'); }
-  $('plus').addEventListener('click', function (e) {
-    e.stopPropagation();
-    var ouvre = $('menu').hidden;
-    $('menu').hidden = !ouvre;
-    $('plus').setAttribute('aria-expanded', String(ouvre));
-  });
-  document.addEventListener('click', function (e) { if (!$('menu').contains(e.target) && e.target !== $('plus')) fermeMenu(); });
-  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') fermeMenu(); });
+  function fermeMenu() { /* plus de menu « … » : tout est dans les réglages */ }
 
   $('enregistrer').addEventListener('click', function () {
     var repo = $('repo').value.trim();
