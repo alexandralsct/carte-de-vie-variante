@@ -172,7 +172,64 @@
     return carte;
   }
 
+  /* ---------- Omniscient : question envoyée via le lien du système ----------
+     Même relais que la carte (crochets/app-lien) : l'adresse vient de « connexion », la clé du lien de « carte-de-vie-lien ».
+     Ni l'une ni l'autre n'est écrite ni affichée ici ; seule la réponse est affichée, avec textContent. */
+  var CLE_OMNI = 'conv:omni';
+  var etatOmniTxt = '';
+  function lienUrl() {
+    var c = json('connexion');
+    var s = c && typeof c.serveur === 'string' && /^https:\/\/[^\s\/?#]+$/.test(c.serveur) ? c.serveur : '';
+    return s ? s + '/crochets/app-lien' : '';
+  }
+  function historiqueOmni() {
+    try { var x = JSON.parse(localStorage.getItem(CLE_OMNI) || '[]'); return Array.isArray(x) ? x : []; } catch (e) { return []; }
+  }
+  function ecritOmni(L) { try { localStorage.setItem(CLE_OMNI, JSON.stringify(L.slice(-40))); } catch (e) { /* hors stockage : la conversation reste à l'écran */ } }
+  function etatOmni(t) { etatOmniTxt = t; rendre(); }
+  function envoieOmni(texte) {
+    var url = lienUrl(), cle = lire('carte-de-vie-lien');
+    if (!url || !cle) { etatOmni('Le lien avec le système n\'est pas activé sur cet appareil.'); return; }
+    var L = historiqueOmni();
+    L.push({ de: 'moi', texte: texte });
+    ecritOmni(L);
+    etatOmniTxt = 'Omniscient réfléchit…';
+    rendre();
+    fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Cle-App': cle }, body: JSON.stringify({ type: 'question', texte: texte }) })
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { return { r: r, j: j || {} }; }); })
+      .then(function (o) {
+        if (o.r.status === 401 || o.r.status === 403) { etatOmni('Clé du lien refusée : vérifie-la dans Réglages.'); return; }
+        if (o.r.status === 404) { etatOmni('Le lien n\'est pas encore activé côté système.'); return; }
+        if (!o.r.ok || o.j.ok === false) { etatOmni('Le système a répondu une erreur (' + o.r.status + ').'); return; }
+        var rep = String(o.j.reponse || o.j.texte || '').trim();
+        var M = historiqueOmni();
+        M.push({ de: 'omni', texte: rep || 'Pas de réponse pour l\'instant.' });
+        ecritOmni(M);
+        etatOmniTxt = '';
+        rendre();
+      })
+      .catch(function () { etatOmni('Le système n\'a pas répondu (connexion ?). Ton message est gardé : réessaie dans un moment.'); });
+  }
+  var champOmni = $('omniTexte');
+  function envoiChampOmni() {
+    var t = champOmni.value.trim();
+    if (!t) return;
+    champOmni.value = '';
+    envoieOmni(t);
+  }
+  $('omniEnvoi').addEventListener('click', envoiChampOmni);
+  champOmni.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); envoiChampOmni(); }
+  });
+
   function rendreFil() {
+    rendreFilEspace();
+    var fil = $('fil');
+    historiqueOmni().forEach(function (m) { fil.appendChild(bulle(m.texte, m.de === 'moi')); });
+    if (etatOmniTxt) fil.appendChild(bulle(etatOmniTxt, false));
+  }
+
+  function rendreFilEspace() {
     var fil = $('fil');
     fil.textContent = '';
     if (!donnees) return;
