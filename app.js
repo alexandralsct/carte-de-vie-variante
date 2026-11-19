@@ -179,12 +179,64 @@
     return carte;
   }
 
+  /* interrupteur « vue carte » : un par tuile, y compris Moi */
+  function interrupteurVue() {
+    var coche = el('label', 'interrupteur coche-espace');
+    coche.title = 'Vue carte';
+    var cb = el('input');
+    cb.type = 'checkbox';
+    cb.setAttribute('aria-label', 'Vue carte');
+    cb.checked = !!vueEspace[choisi];
+    cb.addEventListener('change', function () { vueEspace[choisi] = cb.checked; rendre(); });
+    coche.appendChild(cb);
+    coche.appendChild(el('span', 'piste'));
+    return coche;
+  }
+  /* la vraie carte dans la variante (même origine : déjà connectée), sur l'espace s'il y en a un */
+  function ajouteCadreCarte(fil, nomEspace) {
+    var info = bulle('Ouverture de la carte…', false);
+    fil.appendChild(info);
+    var cadre = el('iframe', 'cadre-carte');
+    cadre.setAttribute('title', 'Carte de vie');
+    cadre.src = '../carte-de-vie/';
+    var nom = String(nomEspace || '').trim().toLowerCase();
+    cadre.addEventListener('load', function () {
+      var essais = 0;
+      var t = setInterval(function () {
+        essais++;
+        try {
+          var d = cadre.contentDocument;
+          var txt = d && d.body ? d.body.textContent.trim() : '';
+          if (d && (/^404|not found/i.test(d.title || '') || /404/.test(txt.slice(0, 80)) || (essais > 6 && txt.length < 20))) {
+            info.querySelector('p').textContent = 'La carte ne s\'ouvre pas ici. Utilise « Ouvrir la carte en plein écran ».';
+            clearInterval(t); return;
+          }
+          var noeuds = d ? d.querySelectorAll('.node') : [];
+          if (noeuds.length && info.parentNode) info.parentNode.removeChild(info);
+          for (var i = 0; nom && i < noeuds.length; i++) {
+            if (noeuds[i].textContent.trim().toLowerCase().indexOf(nom) === 0) { noeuds[i].click(); clearInterval(t); return; }
+          }
+          if (!nom && noeuds.length) clearInterval(t);
+        } catch (x) { clearInterval(t); }
+        if (essais > 30) clearInterval(t);
+      }, 300);
+    });
+    var lien = el('a', 'pilule', 'Ouvrir la carte en plein écran');
+    lien.href = '../carte-de-vie/';
+    lien.target = '_blank';
+    lien.rel = 'noopener';
+    fil.appendChild(lien);
+    fil.appendChild(cadre);
+  }
+
   function rendreFil() {
     var fil = $('fil');
     fil.textContent = '';
     if (!donnees) return;
 
     if (choisi === 'moi') {
+      fil.appendChild(interrupteurVue());
+      if (vueEspace.moi) { ajouteCadreCarte(fil, ''); return; }
       var moi = donnees['meta/moi'] || {};
       var n = ['besoins', 'aspirations', 'envies'].reduce(function (s, k) { return s + (moi[k] || []).length; }, 0);
       fil.appendChild(bulle('Bonjour. Ici, tes espaces. Touche une tuile pour entrer dans un espace.', false));
@@ -195,44 +247,8 @@
     var e = donnees[choisi];
     if (!e) { fil.appendChild(bulle('Cet espace n\'existe plus.', false)); return; }
     fil.appendChild(bulle((e.name || 'Sans nom') + ' · ' + tachesOuvertes(e) + ' tâche(s) ouverte(s).', false));
-    var coche = el('label', 'interrupteur coche-espace');
-    coche.title = 'Vue carte de tout l\'espace';
-    var cbE = el('input');
-    cbE.type = 'checkbox';
-    cbE.setAttribute('aria-label', 'Vue carte de tout l\'espace');
-    cbE.checked = !!vueEspace[choisi];
-    cbE.addEventListener('change', function () { vueEspace[choisi] = cbE.checked; rendre(); });
-    coche.appendChild(cbE);
-    coche.appendChild(el('span', 'piste'));
-    fil.appendChild(coche);
-    if (vueEspace[choisi]) {
-      /* vue carte : la vraie carte s'ouvre dans la variante (même origine : déjà connectée), sur cet espace */
-      var cadre = el('iframe', 'cadre-carte');
-      cadre.setAttribute('title', 'Carte de vie');
-      cadre.src = '../carte-de-vie/';
-      var nom = String(e.name || '').trim().toLowerCase();
-      cadre.addEventListener('load', function () {
-        var essais = 0;
-        var t = setInterval(function () {
-          essais++;
-          try {
-            var d = cadre.contentDocument;
-            var noeuds = d ? d.querySelectorAll('.node') : [];
-            for (var i = 0; i < noeuds.length; i++) {
-              if (nom && noeuds[i].textContent.trim().toLowerCase().indexOf(nom) === 0) { noeuds[i].click(); clearInterval(t); return; }
-            }
-          } catch (x) { clearInterval(t); }
-          if (essais > 30) clearInterval(t);
-        }, 300);
-      });
-      var lien = el('a', 'pilule', 'Ouvrir la carte en plein écran');
-      lien.href = '../carte-de-vie/';
-      lien.target = '_blank';
-      lien.rel = 'noopener';
-      fil.appendChild(lien);
-      fil.appendChild(cadre);
-      return;
-    }
+    fil.appendChild(interrupteurVue());
+    if (vueEspace[choisi]) { ajouteCadreCarte(fil, e.name); return; }
     var actif = ongletEspace[choisi] || 'recap';
 
     var sections = [
