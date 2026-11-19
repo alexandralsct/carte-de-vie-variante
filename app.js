@@ -424,6 +424,17 @@
   }
 
   /* ---------- actions ---------- */
+  /* vraie carte : l'interface complète de la carte (espaces, onglets, recettes, Omniscient), même origine, déjà connectée */
+  function modeCarte(vrai) {
+    var f = $('vraie-carte');
+    if (vrai && !f.getAttribute('src')) f.src = '../carte-de-vie/';
+    f.hidden = !vrai;
+    ['tuiles', 'fil', 'saisie'].forEach(function (i) { $(i).hidden = vrai; });
+    $('replier').parentNode.hidden = vrai;
+    if (vrai) $('ecran-connexion').hidden = true;
+    document.body.classList.toggle('mode-carte', vrai);
+  }
+  $('m-vraie').addEventListener('click', function () { fermeMenu(); modeCarte($('vraie-carte').hidden); });
   $('actu').addEventListener('click', charge);
   $('m-actu').addEventListener('click', function () { fermeMenu(); charge(); });
   $('reglages').addEventListener('click', function () { montreConnexion(true); $('repo').value = lire('cv_repo'); $('cle').value = lire('cv_cle'); });

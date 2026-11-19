@@ -168,3 +168,8 @@ body:not(.grille) .tuile .ico-image { width: 20px; height: 20px; }
 .saisie-item input { flex: 1; min-width: 140px; }
 
 .cadre-carte{display:block;width:100%;height:calc(100dvh - 190px);min-height:420px;border:0;border-radius:14px;background:var(--bg,#fff)}
+
+/* vraie carte plein écran sous l'en-tête */
+.vraie-carte{display:block;width:100%;flex:1;min-height:0;height:calc(100dvh - 76px);border:0;background:var(--fond)}
+.vraie-carte[hidden]{display:none}
+@media (min-width:900px){.vraie-carte{grid-column:1/-1;height:calc(100vh - 100px)}}
