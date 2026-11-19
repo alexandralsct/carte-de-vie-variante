@@ -91,7 +91,7 @@ body:not(.grille) .tuiles { grid-template-columns: repeat(10, 1fr); gap: 6px; pa
 body:not(.grille) .tuile { border-radius: 10px; padding: 0; }
 .tuile .ico { width: 27px; height: 27px; flex-shrink: 0; }
 body:not(.grille) .tuile .ico { width: 20px; height: 20px; }
-.tuile .nom { display: block; text-transform: uppercase; font: 700 9.5px/1.1 var(--display); letter-spacing: 0; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: clip; }
+.tuile .nom { display: block; text-transform: uppercase; font: 700 9.5px/1.1 var(--display); letter-spacing: 0; white-space: normal; overflow-wrap: anywhere; max-width: 100%; max-height: 2.2em; overflow: hidden; text-align: center; }
 .tuile .nom.moyen { font-size: 8.4px; }
 .tuile .nom.long { font-size: 7.4px; letter-spacing: -.25px; }
 body:not(.grille) .tuile .nom { display: none; }
