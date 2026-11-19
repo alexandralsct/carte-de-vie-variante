@@ -78,6 +78,41 @@
   }
 
   /* ---------- barre des espaces (tuiles carrées) ---------- */
+  function tailleNom(nom) {
+    var m = String(nom).split(/\s+/).reduce(function (a, w) { return Math.max(a, w.length); }, 0);
+    return m >= 11 ? ' long' : m >= 9 ? ' moyen' : '';
+  }
+  /* logos de la carte : lus à l'exécution dans la vraie carte (même origine), rien n'est copié dans ce dépôt */
+  var logosCarteLus = false, logosLances = false;
+  function chargeLogosCarte() {
+    var f = document.createElement('iframe');
+    f.setAttribute('aria-hidden', 'true'); f.tabIndex = -1;
+    f.style.cssText = 'position:absolute;width:0;height:0;border:0;visibility:hidden';
+    f.src = '../carte-de-vie/';
+    var essais = 0, nb0 = -1, stable = 0;
+    var t = setInterval(function () {
+      essais++;
+      try {
+        var w = f.contentWindow;
+        var L = w.eval('typeof ICONS_L!=="undefined"?ICONS_L:null'), P = w.eval('typeof ICONS!=="undefined"?ICONS:null');
+        if (L || P) {
+          var nb = Object.keys(L || {}).length + Object.keys(P || {}).length;
+          if (nb === nb0) stable++; else { stable = 0; nb0 = nb; }
+          if (stable >= 3) {   /* tables stables : le module de la propriétaire a fini d'ajouter ses logos */
+            Object.keys(L || {}).forEach(function (k) { ICONES_CARTE_L[k] = String(L[k]).replace(/ class="[^"]*"/g, ''); });
+            Object.keys(P || {}).forEach(function (k) { ICONES_CARTE[k] = String(P[k]).replace(/ class="[^"]*"/g, ''); });
+            logosCarteLus = true;
+            clearInterval(t);
+            if (f.parentNode) f.parentNode.removeChild(f);
+            if (donnees) rendreTuiles();
+          }
+        }
+      } catch (x) { clearInterval(t); }
+      if (essais > 80) { clearInterval(t); if (f.parentNode) f.parentNode.removeChild(f); }
+    }, 400);
+    document.body.appendChild(f);
+  }
+
   function rendreTuiles() {
     var nav = $('tuiles');
     nav.textContent = '';
@@ -86,13 +121,13 @@
     [moi].concat(espaces().map(function (e, i) {
       return { cle: e._cle, nom: e.name || 'Sans nom', badge: tachesOuvertes(e), couleur: e.color || '#002FA7', rang: i, icone: e.icon || e.id };
     })).concat(speciales).forEach(function (t) {
-      var b = el('button', 'tuile' + (t.cle === choisi ? ' on' : '') + (t.nom.length > 14 ? ' long' : t.nom.length > 9 ? ' moyen' : ''));
+      var b = el('button', 'tuile' + (t.cle === choisi ? ' on' : '') + tailleNom(t.nom));
       b.type = 'button';
       b.setAttribute('aria-pressed', String(t.cle === choisi));
       var ico = t.cle === 'moi' ? icone('coach') : iconeEspace(t.icone, t.rang);
       b.appendChild(ico);
       if (typeof t.icone === 'string' && t.icone.indexOf('f:') === 0) chargeImageTuile(ico, t.icone.slice(2));
-      b.appendChild(el('span', 'nom' + (t.nom.length > 14 ? ' long' : t.nom.length > 9 ? ' moyen' : ''), t.nom));
+      b.appendChild(el('span', 'nom' + tailleNom(t.nom), t.nom));
       if (t.badge) b.appendChild(el('span', 'pastille-n', t.badge));
       b.addEventListener('click', function () { choisi = t.cle; vueCarte = {}; rendre(); });
       nav.appendChild(b);
@@ -132,7 +167,8 @@
       if (k && Object.prototype.hasOwnProperty.call(tables[i], k)) return icone(null, tables[i][k]);
     }
     if (k && Object.prototype.hasOwnProperty.call(ICONES, k)) return icone(k);
-    return icone(ORDRE_ICONES[(rang || 0) % ORDRE_ICONES.length]);   /* clé inconnue (module privé) : icône de LIFE par rang, comme avant */
+    if (logosCarteLus) return icone(null, ICONES_CARTE_L.star || ICONES_CARTE.star);   /* comme la carte */
+    return icone(ORDRE_ICONES[(rang || 0) % ORDRE_ICONES.length]);   /* tables pas encore lues : icône LIFE par rang */
   }
 
   function icone(cle, corps) {
@@ -455,6 +491,7 @@
       return r.json();
     }).then(function (j) {
       donnees = j;
+      if (!logosLances) { logosLances = true; chargeLogosCarte(); }
       bt.classList.remove('tourne');
       rendre();
     }).catch(function (err) {
