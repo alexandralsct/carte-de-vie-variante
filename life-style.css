@@ -150,3 +150,9 @@ body:not(.grille) .tuile .ico-image { width: 20px; height: 20px; }
 .interrupteur input:checked + .piste { background: var(--plein); }
 .interrupteur input:checked + .piste::after { background: var(--sur-plein); transform: translateX(20px); }
 .interrupteur input:focus-visible + .piste { outline: 3px solid var(--trait-doux); outline-offset: 2px; }
+
+/* onglets de la vue carte d'un espace (navigables, style LIFE) */
+.onglets { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0; }
+.onglet { flex: none; border: var(--trait-l) solid var(--trait); border-radius: var(--r-p); background: var(--surface); color: var(--encre); font: 600 13px/1 var(--display); padding: 8px 12px; cursor: pointer; }
+.onglet.actif { background: var(--plein); color: var(--sur-plein); }
+.onglet:focus-visible { outline: 3px solid var(--trait-doux); outline-offset: 2px; }
