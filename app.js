@@ -222,6 +222,11 @@
           if (essais > 30) clearInterval(t);
         }, 300);
       });
+      var lien = el('a', 'pilule', 'Ouvrir la carte en plein écran');
+      lien.href = '../carte-de-vie/';
+      lien.target = '_blank';
+      lien.rel = 'noopener';
+      fil.appendChild(lien);
       fil.appendChild(cadre);
       return;
     }
