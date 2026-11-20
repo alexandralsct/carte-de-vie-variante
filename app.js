@@ -2,7 +2,7 @@
    La carte se lit depuis le dépôt privé avec la clé saisie une fois sur l'appareil. Tout texte reçu est affiché avec textContent. */
 (function () {
   'use strict';
-  var APPV = 50;   /* doit valoir le dernier nombre de la version affichée (index.html) */
+  var APPV = 51;   /* doit valoir le dernier nombre de la version affichée (index.html) */
   /* garde-fou : si la page et le code ne sont pas de la même version (copie en cache), on vide les caches et on recharge une fois */
   (function () {
     try {
